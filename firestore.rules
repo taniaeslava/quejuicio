@@ -1,0 +1,43 @@
+rules_version = '2';
+
+// QueJuicio no tiene autenticación: el código del hogar funciona como
+// secreto compartido. Firestore no permite listar colecciones desde el
+// cliente, así que sin conocer el código no se puede construir la ruta
+// households/{code}/... — estas reglas se aseguran de que TODO lo demás
+// quede bloqueado y de que los documentos tengan la forma esperada.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /households/{code}/tasks/{taskId} {
+      allow read, delete: if true;
+      allow create, update: if tareaValida();
+
+      // Una tarea es recurrente (frequencyDays en días) o de una sola
+      // vez (once == true, sin frecuencia).
+      function tareaValida() {
+        let d = request.resource.data;
+        return d.name is string
+          && d.name.size() > 0
+          && d.name.size() <= 100
+          && (
+            d.get('once', false) == true
+            || (d.frequencyDays is number
+                && d.frequencyDays >= 1
+                && d.frequencyDays <= 3650)
+          );
+      }
+    }
+
+    match /households/{code}/tokens/{tokenId} {
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.token is string
+        && request.resource.data.token == tokenId;
+    }
+
+    // Todo lo demás (incluido el documento del hogar y cualquier
+    // intento de leer/escribir fuera de estas rutas): denegado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

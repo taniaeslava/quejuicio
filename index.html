@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>QueJuicio</title>
+  <meta name="description" content="Tareas del hogar poco frecuentes — te avisa cuando ya toca." />
+  <meta name="theme-color" content="#F5E9D8" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="QueJuicio" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Pantalla de entrada ─────────────────────────────── -->
+  <section id="pantalla-entrada" class="pantalla-entrada" hidden>
+    <div class="entrada-caja">
+      <svg class="marca marca-grande" viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M50 50 L50 18 A32 32 0 0 0 18 50 Z" fill="var(--cobalto)"/>
+        <path d="M50 50 L82 50 A32 32 0 0 0 50 18 Z" fill="var(--terracota)"/>
+        <path d="M50 50 L50 82 A32 32 0 0 0 82 50 Z" fill="var(--cobalto)"/>
+        <path d="M50 50 L18 50 A32 32 0 0 0 50 82 Z" fill="var(--terracota)"/>
+      </svg>
+      <h1 class="titulo-app">QueJuicio</h1>
+      <div class="tile-frieze" aria-hidden="true"></div>
+      <p class="entrada-texto">
+        Escribe el <strong>código del hogar</strong> que compartes con tu pareja.
+        Si es la primera vez, inventa uno difícil de adivinar y úsenlo en ambos teléfonos.
+      </p>
+      <form id="form-entrada" class="entrada-form">
+        <input id="input-codigo" type="text" inputmode="text" autocomplete="off"
+               placeholder="ej. girasoles-en-berlin" minlength="8" required />
+        <button type="submit" class="btn btn-primario">Entrar</button>
+      </form>
+      <p class="entrada-nota">Mínimo 8 caracteres. Este código es la única “llave”: no lo compartas fuera de casa.</p>
+    </div>
+  </section>
+
+  <!-- ── Pantalla principal ──────────────────────────────── -->
+  <section id="pantalla-principal" hidden>
+    <header class="cabecera">
+      <div class="cabecera-fila">
+        <svg class="marca" viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M50 50 L50 18 A32 32 0 0 0 18 50 Z" fill="var(--cobalto)"/>
+          <path d="M50 50 L82 50 A32 32 0 0 0 50 18 Z" fill="var(--terracota)"/>
+          <path d="M50 50 L50 82 A32 32 0 0 0 82 50 Z" fill="var(--cobalto)"/>
+          <path d="M50 50 L18 50 A32 32 0 0 0 50 82 Z" fill="var(--terracota)"/>
+        </svg>
+        <h1 class="titulo-app titulo-cabecera">QueJuicio</h1>
+        <button id="btn-ajustes" class="btn-icono" type="button" aria-label="Ajustes" title="Ajustes">⚙</button>
+      </div>
+      <div class="tile-frieze" aria-hidden="true"></div>
+    </header>
+
+    <main>
+      <ul id="lista-tareas" class="lista-tareas"></ul>
+      <div id="estado-vacio" class="estado-vacio" hidden>
+        <p>Todavía no hay tareas.</p>
+        <button id="btn-semilla" class="btn btn-primario" type="button">Crear nuestras tareas iniciales</button>
+        <p class="nota nota-centrada">
+          Lavar brochas de maquillaje (cada mes), lavar ducha (cada 3 meses) y
+          alacenas (cada 4 meses). Quedan como hechas hoy — toca cada una para
+          ajustar cuándo se hizo de verdad la última vez.
+        </p>
+      </div>
+    </main>
+
+    <button id="btn-nueva" class="fab" type="button" aria-label="Nueva tarea">＋</button>
+  </section>
+
+  <!-- ── Diálogo: nueva / editar tarea ───────────────────── -->
+  <dialog id="dialogo-tarea">
+    <form id="form-tarea" method="dialog">
+      <h2 id="titulo-dialogo-tarea">Nueva tarea</h2>
+      <div class="tile-strip tile-strip-fina" aria-hidden="true"></div>
+
+      <label for="tarea-nombre">¿Qué hay que hacer?</label>
+      <input id="tarea-nombre" type="text" maxlength="100" required
+             placeholder="ej. Limpiar los gabinetes de la cocina" />
+
+      <label>¿Cada cuánto?</label>
+      <div class="fila-frecuencia">
+        <input id="tarea-cantidad" type="number" min="1" max="24" step="1" value="3" required />
+        <select id="tarea-unidad">
+          <option value="1">días</option>
+          <option value="7">semanas</option>
+          <option value="30" selected>meses</option>
+          <option value="0">una sola vez</option>
+        </select>
+      </div>
+
+      <label for="tarea-ultima" id="label-ultima">¿Cuándo se hizo por última vez?</label>
+      <input id="tarea-ultima" type="date" required />
+
+      <div class="dialogo-acciones">
+        <button type="button" id="btn-eliminar" class="btn btn-peligro" hidden>Eliminar</button>
+        <span class="separador-flexible"></span>
+        <button type="button" id="btn-cancelar-tarea" class="btn">Cancelar</button>
+        <button type="submit" class="btn btn-primario">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── Diálogo: ajustes ────────────────────────────────── -->
+  <dialog id="dialogo-ajustes">
+    <div class="dialogo-cuerpo">
+      <h2>Ajustes</h2>
+      <div class="tile-strip tile-strip-fina" aria-hidden="true"></div>
+
+      <h3>Hogar</h3>
+      <p>Código: <code id="ajustes-codigo"></code></p>
+
+      <h3>Notificaciones</h3>
+      <p id="estado-notificaciones" class="nota">Sin activar en este teléfono.</p>
+      <button id="btn-notificaciones" class="btn btn-primario" type="button">Activar notificaciones</button>
+      <p class="nota">
+        En iPhone primero hay que <strong>añadir la app a la pantalla de inicio</strong>
+        (Compartir → «Añadir a pantalla de inicio») y abrirla desde ahí.
+      </p>
+
+      <div class="dialogo-acciones">
+        <button id="btn-salir" class="btn btn-peligro" type="button">Salir del hogar</button>
+        <span class="separador-flexible"></span>
+        <button id="btn-cerrar-ajustes" class="btn" type="button">Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
