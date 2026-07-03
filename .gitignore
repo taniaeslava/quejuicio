@@ -1,0 +1,6 @@
+# Dependencias de Node (solo se instalan en GitHub Actions, no en el repo)
+node_modules/
+
+# Claves de cuenta de servicio — NUNCA subir al repo (van como secreto)
+*serviceAccount*.json
+*service-account*.json

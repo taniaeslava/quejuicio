@@ -1,0 +1,15 @@
+{
+  "name": "quejuicio-notify",
+  "private": true,
+  "description": "Aviso diario de tareas vencidas de QueJuicio (corre en GitHub Actions)",
+  "main": "index.js",
+  "scripts": {
+    "notify": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}
