@@ -31,6 +31,7 @@ let desuscribirCompras = null;
 let desuscribirTiendas = null;
 let desuscribirDespensa = null;
 let ultimoBorrado = null; // para "Deshacer" al marcar comprado
+let arrastrando = false;  // true mientras se reordena un ítem (pausa el re-render)
 const TIENDAS_DEFECTO = ["Edeka", "Ikea", "Amazon", "Tedi"];
 const tiendasAbiertas = new Set(
   JSON.parse(localStorage.getItem("queJuicio.tiendasAbiertas") || "[]"),
@@ -344,6 +345,7 @@ function esTiendaPersonalizada(nombre) {
 }
 
 function pintarCompras() {
+  if (arrastrando) return; // no re-renderizar en medio de un arrastre
   const cont = $("#lista-tiendas");
   // Un cambio del otro teléfono dispara un re-render; guardamos el input en
   // edición (tienda, texto y cursor) para restaurarlo y no interrumpir.
@@ -415,8 +417,12 @@ function tarjetaTienda(nombre, items) {
 
   const ul = document.createElement("ul");
   ul.className = "lista-items";
-  const ordenados = [...items].sort((a, b) => a.name.localeCompare(b.name, "es"));
+  // Orden manual (campo order); si falta, por fecha de creación.
+  const ordenados = [...items].sort(
+    (a, b) => (a.order ?? aMilis(a.createdAt) ?? 0) - (b.order ?? aMilis(b.createdAt) ?? 0),
+  );
   for (const item of ordenados) ul.append(filaItem(item));
+  habilitarArrastre(ul, nombre);
   cuerpo.append(ul);
 
   const form = document.createElement("form");
@@ -437,6 +443,17 @@ function tarjetaTienda(nombre, items) {
     sug.replaceChildren();
   });
   input.addEventListener("input", () => actualizarSugerencias(input, nombre));
+  // Pegar varias líneas (p. ej. copiadas de Notion) → un artículo por renglón.
+  input.addEventListener("paste", (ev) => {
+    const texto = ev.clipboardData?.getData("text") ?? "";
+    if (/\r?\n/.test(texto)) {
+      ev.preventDefault();
+      const lineas = texto.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+      agregarVariasCompras(nombre, lineas);
+      input.value = "";
+      sug.replaceChildren();
+    }
+  });
   cuerpo.append(form);
 
   sec.append(cuerpo);
@@ -446,15 +463,99 @@ function tarjetaTienda(nombre, items) {
 function filaItem(item) {
   const li = document.createElement("li");
   li.className = "item";
+  li.dataset.id = item.id;
+
+  const grip = document.createElement("span");
+  grip.className = "item-grip";
+  grip.setAttribute("aria-hidden", "true");
+  grip.textContent = "⠿";
+
   const label = document.createElement("label");
   const chk = document.createElement("input");
   chk.type = "checkbox";
   const txt = document.createElement("span");
   txt.textContent = item.name;
   label.append(chk, txt);
-  li.append(label);
   chk.addEventListener("change", () => { if (chk.checked) comprarItem(item); });
+
+  li.append(grip, label);
   return li;
+}
+
+// Arrastre táctil/mouse para reordenar; el asa (grip) inicia el gesto.
+function habilitarArrastre(ul, tienda) {
+  let arrastrado = null;
+  for (const grip of ul.querySelectorAll(".item-grip")) {
+    grip.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault();
+      arrastrado = grip.closest(".item");
+      arrastrando = true;
+      arrastrado.classList.add("arrastrando");
+      grip.setPointerCapture(ev.pointerId);
+    });
+    grip.addEventListener("pointermove", (ev) => {
+      if (!arrastrado) return;
+      const y = ev.clientY;
+      const otros = [...ul.querySelectorAll(".item:not(.arrastrando)")];
+      const siguiente = otros.find((s) => {
+        const r = s.getBoundingClientRect();
+        return y < r.top + r.height / 2;
+      });
+      if (siguiente) ul.insertBefore(arrastrado, siguiente);
+      else ul.append(arrastrado);
+    });
+    const fin = async (ev) => {
+      if (!arrastrado) return;
+      arrastrado.classList.remove("arrastrando");
+      arrastrado = null;
+      try { grip.releasePointerCapture(ev.pointerId); } catch {}
+      await guardarOrden(ul);
+      arrastrando = false;
+    };
+    grip.addEventListener("pointerup", fin);
+    grip.addEventListener("pointercancel", fin);
+  }
+}
+
+async function guardarOrden(ul) {
+  const ids = [...ul.querySelectorAll(".item")].map((li) => li.dataset.id);
+  await Promise.all(
+    ids.map((id, i) => {
+      const item = compras.find((c) => c.id === id);
+      if (item && item.order !== i) return updateDoc(doc(coleccionCompras(), id), { order: i });
+      return null;
+    }),
+  );
+}
+
+function siguienteOrden(tienda) {
+  const ordenes = compras.filter((c) => c.store === tienda).map((c) => c.order ?? 0);
+  return ordenes.length ? Math.max(...ordenes) + 1 : 0;
+}
+
+async function agregarVariasCompras(tienda, nombres) {
+  // Sin duplicados (entre las líneas pegadas y contra lo ya activo en la tienda).
+  const yaEn = new Set(compras.filter((c) => c.store === tienda).map((c) => c.name.toLowerCase()));
+  const nuevos = [];
+  for (const n of nombres) {
+    const bajo = n.toLowerCase();
+    if (n && !yaEn.has(bajo)) { yaEn.add(bajo); nuevos.push(n.slice(0, 100)); }
+  }
+  if (!nuevos.length) return;
+  const base = siguienteOrden(tienda);
+  try {
+    await Promise.all(
+      nuevos.map((n, i) =>
+        addDoc(coleccionCompras(), {
+          name: n, store: tienda, order: base + i, createdAt: serverTimestamp(),
+        }),
+      ),
+    );
+    avisar(`${nuevos.length} artículo(s) agregados a ${tienda}.`);
+  } catch (err) {
+    console.error(err);
+    avisar("No se pudieron agregar. ¿Publicaste las reglas de Firestore?");
+  }
 }
 
 function alternarTienda(nombre) {
@@ -507,7 +608,9 @@ async function agregarCompra(tienda, nombre) {
   );
   if (existe) { avisar(`«${nombre}» ya está en ${tienda}.`); return; }
   try {
-    await addDoc(coleccionCompras(), { name: nombre, store: tienda, createdAt: serverTimestamp() });
+    await addDoc(coleccionCompras(), {
+      name: nombre, store: tienda, order: siguienteOrden(tienda), createdAt: serverTimestamp(),
+    });
   } catch (err) {
     console.error(err);
     avisar("No se pudo agregar. ¿Publicaste las reglas de Firestore?");
@@ -538,7 +641,9 @@ async function deshacerCompra() {
   if (!ultimoBorrado) return;
   const { name, store } = ultimoBorrado;
   ultimoBorrado = null;
-  await addDoc(coleccionCompras(), { name, store, createdAt: serverTimestamp() });
+  await addDoc(coleccionCompras(), {
+    name, store, order: siguienteOrden(store), createdAt: serverTimestamp(),
+  });
 }
 
 function claveDespensa(nombre) {
