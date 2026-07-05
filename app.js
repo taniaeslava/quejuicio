@@ -872,6 +872,7 @@ $("#form-entrada").addEventListener("submit", (ev) => {
 });
 
 $("#btn-nueva").addEventListener("click", () => abrirDialogoTarea());
+$("#btn-primera-tarea").addEventListener("click", () => abrirDialogoTarea());
 $("#btn-semilla").addEventListener("click", crearTareasIniciales);
 $("#tarea-unidad").addEventListener("change", actualizarCamposFrecuencia);
 $("#form-tarea").addEventListener("submit", guardarTarea);

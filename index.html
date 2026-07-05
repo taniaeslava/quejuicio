@@ -64,12 +64,17 @@
       <div id="vista-tareas">
         <ul id="lista-tareas" class="lista-tareas"></ul>
         <div id="estado-vacio" class="estado-vacio" hidden>
-          <p>Todavía no hay tareas.</p>
-          <button id="btn-semilla" class="btn btn-primario" type="button">Crear nuestras tareas iniciales</button>
+          <p class="estado-vacio-titulo">Todavía no hay tareas</p>
           <p class="nota nota-centrada">
-            Lavar brochas de maquillaje (cada mes), lavar ducha (cada 3 meses) y
-            alacenas (cada 4 meses). Quedan como hechas hoy — toca cada una para
-            ajustar cuándo se hizo de verdad la última vez.
+            Aquí van las cosas del hogar que se hacen cada cierto tiempo —
+            limpiar la ducha, cambiar un filtro, lavar cortinas… lo que sea.
+            QueJuicio te avisa cuando vuelve a tocar hacerlas.
+          </p>
+          <button id="btn-primera-tarea" class="btn btn-primario" type="button">＋ Agregar una tarea</button>
+          <p class="nota nota-centrada estado-vacio-ejemplos">
+            ¿Prefieres arrancar con ejemplos?
+            <button id="btn-semilla" class="enlace-boton" type="button">Cargar 3 de ejemplo</button>
+            — son editables y las puedes borrar.
           </p>
         </div>
       </div>

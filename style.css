@@ -189,7 +189,20 @@ main { padding: 0 1rem calc(6rem + env(safe-area-inset-bottom)); max-width: 34re
 .btn-hecha:active { background: #234a6d; }
 
 .estado-vacio { text-align: center; padding: 3rem 1rem; color: rgba(36, 52, 74, 0.75); }
+.estado-vacio-titulo { font-family: var(--fuente-display); font-size: 1.3rem; font-weight: 600; color: var(--cobalto); margin: 0 0 0.3rem; }
+.estado-vacio .btn-primario { margin-top: 1.1rem; }
+.estado-vacio-ejemplos { margin-top: 1.6rem; }
 .nota-centrada { text-align: center; margin-top: 0.9rem; }
+.enlace-boton {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--cobalto);
+  text-decoration: underline;
+  cursor: pointer;
+}
 
 /* ── Botón flotante ── */
 /* como una ficha del juego: baldosa cuadrada con filo esmaltado */
