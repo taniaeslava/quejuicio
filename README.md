@@ -7,6 +7,12 @@ en sus propios teléfonos, con notificaciones push cuando algo está vencido.
 También admite tareas **de una sola vez** («colgar los cuadros»), que se
 quedan en la lista hasta que se hacen y desaparecen al marcarlas.
 
+Además tiene una **lista de compras** compartida (pestaña «Compras» abajo),
+al estilo Google Keep pero **agrupada por tiendas** plegables (Edeka, Ikea,
+Amazon, Tedi y las que agregues). Marcas un artículo cuando lo compras y
+desaparece, pero la app lo recuerda: la próxima vez que empieces a escribirlo
+te lo sugiere. Hay «Deshacer» por si marcas uno sin querer.
+
 Todo con servicios en capa gratuita: hosting estático (Vercel/Netlify),
 Firestore para sincronizar, Firebase Cloud Messaging (FCM) para el push y
 GitHub Actions como "despertador" diario. Sin app store, sin backend pago,
@@ -17,9 +23,9 @@ teléfonos hace de llave.
 
 ```
 quejuicio/
-├── index.html                 pantalla de entrada + lista de tareas + diálogos
+├── index.html                 entrada + pestañas (tareas / compras) + diálogos
 ├── style.css                  estilo azulejo (crema, cobalto, terracota)
-├── app.js                     lógica: Firestore, anillos de frescura, push
+├── app.js                     lógica: Firestore, tareas, lista de compras, push
 ├── config.js                  ⚠️ pega aquí la config de TU proyecto Firebase
 ├── firebase-messaging-sw.js   ⚠️ duplica la config (los SW no importan módulos)
 ├── manifest.webmanifest       para "añadir a pantalla de inicio"
@@ -32,13 +38,27 @@ quejuicio/
 Modelo de datos en Firestore:
 
 ```
-households/{codigo}/tasks/{taskId}    { name, once, frequencyDays, lastDone, history[], createdAt, lastNotified? }
-households/{codigo}/tokens/{fcmToken} { token, userAgent, createdAt }
+households/{codigo}/tasks/{taskId}     { name, once, frequencyDays, lastDone, history[], createdAt, lastNotified? }
+households/{codigo}/tokens/{fcmToken}  { token, userAgent, createdAt }
+households/{codigo}/shopping/{itemId}  { name, store, createdAt }        ← artículos por comprar
+households/{codigo}/stores/{storeId}   { name, createdAt }               ← tiendas agregadas por el usuario
+households/{codigo}/pantry/{clave}     { name, store, lastBought }       ← memoria para autocompletar
 ```
 
 Las tareas recurrentes tienen `once: false` y `frequencyDays` en días; las
 de una sola vez tienen `once: true` y `frequencyDays: null`, no generan
 avisos push (no tienen fecha límite) y se borran al marcarlas hechas.
+
+La lista de compras: cada artículo activo vive en `shopping` con su `store`.
+Las tiendas Edeka/Ikea/Amazon/Tedi están fijas en el código; las demás se
+guardan en `stores`. Al marcar un artículo como comprado se borra de
+`shopping` y se guarda (deduplicado por nombre) en `pantry`, de donde salen
+las sugerencias del autocompletado.
+
+> ⚠️ Si ya tenías las reglas publicadas de antes, **hay que volver a
+> publicarlas** — [firestore.rules](firestore.rules) ahora incluye las tres
+> colecciones nuevas (`shopping`, `stores`, `pantry`). Sin eso, la lista de
+> compras da error de permisos.
 
 ---
 

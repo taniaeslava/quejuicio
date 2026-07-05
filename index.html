@@ -60,19 +60,40 @@
     </header>
 
     <main>
-      <ul id="lista-tareas" class="lista-tareas"></ul>
-      <div id="estado-vacio" class="estado-vacio" hidden>
-        <p>Todavía no hay tareas.</p>
-        <button id="btn-semilla" class="btn btn-primario" type="button">Crear nuestras tareas iniciales</button>
-        <p class="nota nota-centrada">
-          Lavar brochas de maquillaje (cada mes), lavar ducha (cada 3 meses) y
-          alacenas (cada 4 meses). Quedan como hechas hoy — toca cada una para
-          ajustar cuándo se hizo de verdad la última vez.
-        </p>
+      <!-- ── Vista: Tareas ── -->
+      <div id="vista-tareas">
+        <ul id="lista-tareas" class="lista-tareas"></ul>
+        <div id="estado-vacio" class="estado-vacio" hidden>
+          <p>Todavía no hay tareas.</p>
+          <button id="btn-semilla" class="btn btn-primario" type="button">Crear nuestras tareas iniciales</button>
+          <p class="nota nota-centrada">
+            Lavar brochas de maquillaje (cada mes), lavar ducha (cada 3 meses) y
+            alacenas (cada 4 meses). Quedan como hechas hoy — toca cada una para
+            ajustar cuándo se hizo de verdad la última vez.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Vista: Compras ── -->
+      <div id="vista-compras" hidden>
+        <div id="lista-tiendas" class="lista-tiendas"></div>
+        <button id="btn-nueva-tienda" class="btn btn-tienda-nueva" type="button">＋ Agregar tienda</button>
       </div>
     </main>
 
     <button id="btn-nueva" class="fab" type="button" aria-label="Nueva tarea">＋</button>
+
+    <!-- ── Pestañas inferiores ── -->
+    <nav id="barra-pestanas" class="barra-pestanas" aria-label="Secciones">
+      <button id="tab-tareas" class="tab activa" type="button" aria-current="page">
+        <span class="tab-icono" aria-hidden="true">✓</span>
+        <span>Tareas</span>
+      </button>
+      <button id="tab-compras" class="tab" type="button">
+        <span class="tab-icono" aria-hidden="true">🛒</span>
+        <span>Compras</span>
+      </button>
+    </nav>
   </section>
 
   <!-- ── Diálogo: nueva / editar tarea ───────────────────── -->
@@ -104,6 +125,22 @@
         <span class="separador-flexible"></span>
         <button type="button" id="btn-cancelar-tarea" class="btn">Cancelar</button>
         <button type="submit" class="btn btn-primario">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── Diálogo: nueva tienda ───────────────────────────── -->
+  <dialog id="dialogo-tienda">
+    <form id="form-tienda" method="dialog">
+      <h2>Nueva tienda</h2>
+      <div class="tile-strip tile-strip-fina" aria-hidden="true"></div>
+      <label for="tienda-nombre">Nombre de la tienda</label>
+      <input id="tienda-nombre" type="text" maxlength="60" required
+             placeholder="ej. dm, Rossmann, Lidl" autocomplete="off" />
+      <div class="dialogo-acciones">
+        <span class="separador-flexible"></span>
+        <button type="button" id="btn-cancelar-tienda" class="btn">Cancelar</button>
+        <button type="submit" class="btn btn-primario">Crear</button>
       </div>
     </form>
   </dialog>

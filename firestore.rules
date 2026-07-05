@@ -34,6 +34,33 @@ service cloud.firestore {
         && request.resource.data.token == tokenId;
     }
 
+    // Lista de compras: artículos activos, agrupados por tienda.
+    match /households/{code}/shopping/{itemId} {
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.store is string
+        && request.resource.data.store.size() > 0
+        && request.resource.data.store.size() <= 60;
+    }
+
+    // Tiendas personalizadas que agrega la usuaria.
+    match /households/{code}/stores/{storeId} {
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 60;
+    }
+
+    // Despensa: memoria de artículos comprados para el autocompletado.
+    match /households/{code}/pantry/{key} {
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100;
+    }
+
     // Todo lo demás (incluido el documento del hogar y cualquier
     // intento de leer/escribir fuera de estas rutas): denegado.
     match /{document=**} {

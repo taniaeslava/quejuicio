@@ -23,6 +23,20 @@ let tareas = [];
 let desuscribir = null;
 let idEnEdicion = null;
 
+// ── Lista de compras ──
+let compras = [];        // artículos activos { id, name, store, createdAt }
+let tiendasExtra = [];   // tiendas agregadas por la usuaria { id, name }
+let despensa = [];       // memoria para autocompletar { id, name, store, lastBought }
+let desuscribirCompras = null;
+let desuscribirTiendas = null;
+let desuscribirDespensa = null;
+let ultimoBorrado = null; // para "Deshacer" al marcar comprado
+const TIENDAS_DEFECTO = ["Edeka", "Ikea", "Amazon", "Tedi"];
+const tiendasAbiertas = new Set(
+  JSON.parse(localStorage.getItem("queJuicio.tiendasAbiertas") || "[]"),
+);
+const cssEscape = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : s);
+
 /* ── Estado de frescura ─────────────────────────────────────
    La misma regla vive en notify/index.js (estaVencida): una
    tarea está vencida cuando han pasado >= frequencyDays desde
@@ -49,6 +63,9 @@ function aMilis(ts) {
 function coleccionTareas() {
   return collection(db, "households", codigoHogar, "tasks");
 }
+const coleccionCompras = () => collection(db, "households", codigoHogar, "shopping");
+const coleccionTiendas = () => collection(db, "households", codigoHogar, "stores");
+const coleccionDespensa = () => collection(db, "households", codigoHogar, "pantry");
 
 function entrarAlHogar(codigo) {
   codigoHogar = codigo;
@@ -68,14 +85,41 @@ function entrarAlHogar(codigo) {
       avisar("No se pudo conectar con Firestore. Revisa config.js y las reglas.");
     },
   );
+
+  const errorCompras = (err) => console.error("compras:", err);
+  desuscribirCompras?.();
+  desuscribirCompras = onSnapshot(coleccionCompras(), (snap) => {
+    compras = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    pintarCompras();
+  }, errorCompras);
+  desuscribirTiendas?.();
+  desuscribirTiendas = onSnapshot(coleccionTiendas(), (snap) => {
+    tiendasExtra = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    pintarCompras();
+  }, errorCompras);
+  desuscribirDespensa?.();
+  desuscribirDespensa = onSnapshot(coleccionDespensa(), (snap) => {
+    despensa = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  }, errorCompras);
+
+  // Pintar ya las tiendas por defecto, sin esperar a Firestore.
+  pintarCompras();
+  mostrarVista(localStorage.getItem("queJuicio.vista") || "tareas");
 }
 
 function salirDelHogar() {
   desuscribir?.();
-  desuscribir = null;
+  desuscribirCompras?.();
+  desuscribirTiendas?.();
+  desuscribirDespensa?.();
+  desuscribir = desuscribirCompras = desuscribirTiendas = desuscribirDespensa = null;
   localStorage.removeItem("queJuicio.hogar");
   codigoHogar = "";
   tareas = [];
+  compras = [];
+  tiendasExtra = [];
+  despensa = [];
+  mostrarVista("tareas");
   $("#dialogo-ajustes").close();
   $("#pantalla-principal").hidden = true;
   $("#pantalla-entrada").hidden = false;
@@ -274,6 +318,257 @@ async function eliminarTarea() {
   $("#dialogo-tarea").close();
 }
 
+/* ── Pestañas: Tareas / Compras ── */
+function mostrarVista(cual) {
+  const esTareas = cual === "tareas";
+  $("#vista-tareas").hidden = !esTareas;
+  $("#vista-compras").hidden = esTareas;
+  $("#btn-nueva").hidden = !esTareas; // el FAB "+" es solo para tareas
+  $("#tab-tareas").classList.toggle("activa", esTareas);
+  $("#tab-compras").classList.toggle("activa", !esTareas);
+  localStorage.setItem("queJuicio.vista", cual);
+}
+
+/* ── Lista de compras ── */
+function listaDeTiendas() {
+  // Las de por defecto primero; luego las personalizadas que no repitan una.
+  const nombres = [...TIENDAS_DEFECTO];
+  for (const t of tiendasExtra) {
+    if (!nombres.some((n) => n.toLowerCase() === t.name.toLowerCase())) nombres.push(t.name);
+  }
+  return nombres;
+}
+
+function esTiendaPersonalizada(nombre) {
+  return !TIENDAS_DEFECTO.some((n) => n.toLowerCase() === nombre.toLowerCase());
+}
+
+function pintarCompras() {
+  const cont = $("#lista-tiendas");
+  // Un cambio del otro teléfono dispara un re-render; guardamos el input en
+  // edición (tienda, texto y cursor) para restaurarlo y no interrumpir.
+  const activo = document.activeElement;
+  let focoTienda = null, focoValor = "", focoPos = 0;
+  if (activo && activo.classList?.contains("input-item")) {
+    focoTienda = activo.closest(".tienda")?.dataset.store;
+    focoValor = activo.value;
+    focoPos = activo.selectionStart ?? focoValor.length;
+  }
+
+  const porTienda = new Map();
+  for (const nombre of listaDeTiendas()) porTienda.set(nombre, []);
+  for (const item of compras) {
+    if (!porTienda.has(item.store)) porTienda.set(item.store, []); // tienda huérfana
+    porTienda.get(item.store).push(item);
+  }
+
+  cont.replaceChildren(
+    ...[...porTienda.entries()].map(([nombre, items]) => tarjetaTienda(nombre, items)),
+  );
+
+  if (focoTienda) {
+    const input = cont.querySelector(`.tienda[data-store="${cssEscape(focoTienda)}"] .input-item`);
+    if (input) {
+      input.value = focoValor;
+      input.focus();
+      input.setSelectionRange(focoPos, focoPos);
+      actualizarSugerencias(input, focoTienda);
+    }
+  }
+}
+
+function tarjetaTienda(nombre, items) {
+  const abierta = tiendasAbiertas.has(nombre);
+  const sec = document.createElement("section");
+  sec.className = "tienda" + (abierta ? " abierta" : "");
+  sec.dataset.store = nombre;
+
+  const header = document.createElement("button");
+  header.type = "button";
+  header.className = "tienda-header";
+  const chevron = document.createElement("span");
+  chevron.className = "tienda-chevron";
+  chevron.setAttribute("aria-hidden", "true");
+  chevron.textContent = "▸";
+  const nom = document.createElement("span");
+  nom.className = "tienda-nombre";
+  nom.textContent = nombre;
+  const conteo = document.createElement("span");
+  conteo.className = "tienda-conteo";
+  conteo.textContent = items.length ? String(items.length) : "";
+  header.append(chevron, nom, conteo);
+  if (esTiendaPersonalizada(nombre)) {
+    const del = document.createElement("span");
+    del.className = "tienda-eliminar";
+    del.setAttribute("role", "button");
+    del.setAttribute("aria-label", `Eliminar tienda ${nombre}`);
+    del.textContent = "✕";
+    del.addEventListener("click", (ev) => { ev.stopPropagation(); eliminarTienda(nombre, items); });
+    header.append(del);
+  }
+  header.addEventListener("click", () => alternarTienda(nombre));
+  sec.append(header);
+
+  const cuerpo = document.createElement("div");
+  cuerpo.className = "tienda-cuerpo";
+  cuerpo.hidden = !abierta;
+
+  const ul = document.createElement("ul");
+  ul.className = "lista-items";
+  const ordenados = [...items].sort((a, b) => a.name.localeCompare(b.name, "es"));
+  for (const item of ordenados) ul.append(filaItem(item));
+  cuerpo.append(ul);
+
+  const form = document.createElement("form");
+  form.className = "form-item";
+  const input = document.createElement("input");
+  input.className = "input-item";
+  input.type = "text";
+  input.maxLength = 100;
+  input.autocomplete = "off";
+  input.placeholder = `Agregar a ${nombre}…`;
+  const sug = document.createElement("div");
+  sug.className = "sugerencias";
+  form.append(input, sug);
+  form.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    agregarCompra(nombre, input.value);
+    input.value = "";
+    sug.replaceChildren();
+  });
+  input.addEventListener("input", () => actualizarSugerencias(input, nombre));
+  cuerpo.append(form);
+
+  sec.append(cuerpo);
+  return sec;
+}
+
+function filaItem(item) {
+  const li = document.createElement("li");
+  li.className = "item";
+  const label = document.createElement("label");
+  const chk = document.createElement("input");
+  chk.type = "checkbox";
+  const txt = document.createElement("span");
+  txt.textContent = item.name;
+  label.append(chk, txt);
+  li.append(label);
+  chk.addEventListener("change", () => { if (chk.checked) comprarItem(item); });
+  return li;
+}
+
+function alternarTienda(nombre) {
+  if (tiendasAbiertas.has(nombre)) tiendasAbiertas.delete(nombre);
+  else tiendasAbiertas.add(nombre);
+  localStorage.setItem("queJuicio.tiendasAbiertas", JSON.stringify([...tiendasAbiertas]));
+  pintarCompras();
+}
+
+function actualizarSugerencias(input, tienda) {
+  const sug = input.nextElementSibling;
+  const texto = input.value.trim().toLowerCase();
+  if (!texto) { sug.replaceChildren(); return; }
+  // Nombres ya activos en esta tienda: no los sugerimos otra vez.
+  const yaEn = new Set(
+    compras.filter((c) => c.store === tienda).map((c) => c.name.toLowerCase()),
+  );
+  const vistos = new Set();
+  const matches = [];
+  for (const p of despensa) {
+    const n = p.name.toLowerCase();
+    if (n.includes(texto) && !yaEn.has(n) && !vistos.has(n)) {
+      vistos.add(n);
+      matches.push(p.name);
+      if (matches.length >= 5) break;
+    }
+  }
+  sug.replaceChildren(
+    ...matches.map((nombre) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "sugerencia";
+      b.textContent = nombre;
+      b.addEventListener("click", () => {
+        agregarCompra(tienda, nombre);
+        input.value = "";
+        sug.replaceChildren();
+        input.focus();
+      });
+      return b;
+    }),
+  );
+}
+
+async function agregarCompra(tienda, nombre) {
+  nombre = nombre.trim();
+  if (!nombre) return;
+  const existe = compras.some(
+    (c) => c.store === tienda && c.name.toLowerCase() === nombre.toLowerCase(),
+  );
+  if (existe) { avisar(`«${nombre}» ya está en ${tienda}.`); return; }
+  try {
+    await addDoc(coleccionCompras(), { name: nombre, store: tienda, createdAt: serverTimestamp() });
+  } catch (err) {
+    console.error(err);
+    avisar("No se pudo agregar. ¿Publicaste las reglas de Firestore?");
+  }
+}
+
+async function comprarItem(item) {
+  try {
+    // Recordar en la despensa (deduplicado por nombre) para autocompletar luego.
+    const clave = claveDespensa(item.name);
+    if (clave) {
+      await setDoc(
+        doc(coleccionDespensa(), clave),
+        { name: item.name, store: item.store, lastBought: serverTimestamp() },
+        { merge: true },
+      );
+    }
+    await deleteDoc(doc(coleccionCompras(), item.id));
+    ultimoBorrado = { name: item.name, store: item.store };
+    avisarDeshacer(`«${item.name}» comprado ✓`, deshacerCompra);
+  } catch (err) {
+    console.error(err);
+    avisar("No se pudo marcar como comprado.");
+  }
+}
+
+async function deshacerCompra() {
+  if (!ultimoBorrado) return;
+  const { name, store } = ultimoBorrado;
+  ultimoBorrado = null;
+  await addDoc(coleccionCompras(), { name, store, createdAt: serverTimestamp() });
+}
+
+function claveDespensa(nombre) {
+  return nombre.trim().toLowerCase().replaceAll("/", "-").slice(0, 120);
+}
+
+async function agregarTienda(nombre) {
+  nombre = nombre.trim();
+  if (!nombre) return;
+  if (listaDeTiendas().some((n) => n.toLowerCase() === nombre.toLowerCase())) {
+    avisar(`«${nombre}» ya existe.`);
+    return;
+  }
+  tiendasAbiertas.add(nombre);
+  localStorage.setItem("queJuicio.tiendasAbiertas", JSON.stringify([...tiendasAbiertas]));
+  await addDoc(coleccionTiendas(), { name: nombre, createdAt: serverTimestamp() });
+}
+
+async function eliminarTienda(nombre, items) {
+  const extra = tiendasExtra.find((t) => t.name.toLowerCase() === nombre.toLowerCase());
+  if (!extra) return;
+  const aviso = items.length
+    ? `¿Eliminar la tienda «${nombre}» y sus ${items.length} artículo(s)?`
+    : `¿Eliminar la tienda «${nombre}»?`;
+  if (!confirm(aviso)) return;
+  tiendasAbiertas.delete(nombre);
+  await Promise.all(items.map((it) => deleteDoc(doc(coleccionCompras(), it.id))));
+  await deleteDoc(doc(coleccionTiendas(), extra.id));
+}
+
 /* ── Notificaciones push (FCM) ── */
 async function activarNotificaciones() {
   const boton = $("#btn-notificaciones");
@@ -325,6 +620,27 @@ function avisar(mensaje) {
   toastTimer = setTimeout(() => (toast.hidden = true), 3500);
 }
 
+// Aviso con botón "Deshacer" (más tiempo en pantalla).
+function avisarDeshacer(mensaje, accion) {
+  const toast = $("#toast");
+  toast.replaceChildren();
+  const span = document.createElement("span");
+  span.textContent = mensaje;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "toast-accion";
+  btn.textContent = "Deshacer";
+  btn.addEventListener("click", () => {
+    clearTimeout(toastTimer);
+    toast.hidden = true;
+    accion();
+  });
+  toast.append(span, btn);
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (toast.hidden = true), 6000);
+}
+
 /* ── Arranque y eventos ── */
 $("#form-entrada").addEventListener("submit", (ev) => {
   ev.preventDefault();
@@ -347,6 +663,20 @@ $("#btn-ajustes").addEventListener("click", () => {
   $("#dialogo-ajustes").showModal();
 });
 $("#btn-cerrar-ajustes").addEventListener("click", () => $("#dialogo-ajustes").close());
+
+// Pestañas y lista de compras
+$("#tab-tareas").addEventListener("click", () => mostrarVista("tareas"));
+$("#tab-compras").addEventListener("click", () => mostrarVista("compras"));
+$("#btn-nueva-tienda").addEventListener("click", () => {
+  $("#tienda-nombre").value = "";
+  $("#dialogo-tienda").showModal();
+});
+$("#btn-cancelar-tienda").addEventListener("click", () => $("#dialogo-tienda").close());
+$("#form-tienda").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  agregarTienda($("#tienda-nombre").value);
+  $("#dialogo-tienda").close();
+});
 $("#btn-notificaciones").addEventListener("click", activarNotificaciones);
 $("#btn-salir").addEventListener("click", () => {
   if (confirm("¿Salir del hogar en este teléfono? Las tareas siguen guardadas.")) {
