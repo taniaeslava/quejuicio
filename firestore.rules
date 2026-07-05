@@ -61,6 +61,13 @@ service cloud.firestore {
         && request.resource.data.name.size() <= 100;
     }
 
+    // Preferencias del hogar (p. ej. el orden manual de las tiendas).
+    match /households/{code}/prefs/{docId} {
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.storeOrder is list
+        && request.resource.data.storeOrder.size() <= 100;
+    }
+
     // Todo lo demás (incluido el documento del hogar y cualquier
     // intento de leer/escribir fuera de estas rutas): denegado.
     match /{document=**} {

@@ -31,7 +31,9 @@ let desuscribirCompras = null;
 let desuscribirTiendas = null;
 let desuscribirDespensa = null;
 let ultimoBorrado = null; // para "Deshacer" al marcar comprado
-let arrastrando = false;  // true mientras se reordena un ítem (pausa el re-render)
+let arrastrando = false;  // true mientras se reordena algo (pausa el re-render)
+let ordenTiendas = [];    // orden manual de las tiendas (se guarda en prefs/general)
+let desuscribirPrefs = null;
 const TIENDAS_DEFECTO = ["Edeka", "Ikea", "Amazon", "Tedi"];
 const tiendasAbiertas = new Set(
   JSON.parse(localStorage.getItem("queJuicio.tiendasAbiertas") || "[]"),
@@ -67,6 +69,7 @@ function coleccionTareas() {
 const coleccionCompras = () => collection(db, "households", codigoHogar, "shopping");
 const coleccionTiendas = () => collection(db, "households", codigoHogar, "stores");
 const coleccionDespensa = () => collection(db, "households", codigoHogar, "pantry");
+const docPrefs = () => doc(db, "households", codigoHogar, "prefs", "general");
 
 function entrarAlHogar(codigo) {
   codigoHogar = codigo;
@@ -102,6 +105,11 @@ function entrarAlHogar(codigo) {
   desuscribirDespensa = onSnapshot(coleccionDespensa(), (snap) => {
     despensa = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }, errorCompras);
+  desuscribirPrefs?.();
+  desuscribirPrefs = onSnapshot(docPrefs(), (snap) => {
+    ordenTiendas = snap.data()?.storeOrder || [];
+    pintarCompras();
+  }, errorCompras);
 
   // Pintar ya las tiendas por defecto, sin esperar a Firestore.
   pintarCompras();
@@ -113,13 +121,15 @@ function salirDelHogar() {
   desuscribirCompras?.();
   desuscribirTiendas?.();
   desuscribirDespensa?.();
-  desuscribir = desuscribirCompras = desuscribirTiendas = desuscribirDespensa = null;
+  desuscribirPrefs?.();
+  desuscribir = desuscribirCompras = desuscribirTiendas = desuscribirDespensa = desuscribirPrefs = null;
   localStorage.removeItem("queJuicio.hogar");
   codigoHogar = "";
   tareas = [];
   compras = [];
   tiendasExtra = [];
   despensa = [];
+  ordenTiendas = [];
   mostrarVista("tareas");
   $("#dialogo-ajustes").close();
   $("#pantalla-principal").hidden = true;
@@ -337,7 +347,11 @@ function listaDeTiendas() {
   for (const t of tiendasExtra) {
     if (!nombres.some((n) => n.toLowerCase() === t.name.toLowerCase())) nombres.push(t.name);
   }
-  return nombres;
+  if (!ordenTiendas.length) return nombres;
+  // Ordenar según el orden manual guardado; las no listadas quedan al final
+  // en su orden base (Array.sort es estable, así que empatan sin moverse).
+  const idx = (n) => { const i = ordenTiendas.indexOf(n); return i === -1 ? Infinity : i; };
+  return nombres.slice().sort((a, b) => idx(a) - idx(b));
 }
 
 function esTiendaPersonalizada(nombre) {
@@ -388,6 +402,10 @@ function tarjetaTienda(nombre, items) {
   const header = document.createElement("button");
   header.type = "button";
   header.className = "tienda-header";
+  const grip = document.createElement("span");
+  grip.className = "tienda-grip";
+  grip.setAttribute("aria-hidden", "true");
+  grip.textContent = "⠿";
   const chevron = document.createElement("span");
   chevron.className = "tienda-chevron";
   chevron.setAttribute("aria-hidden", "true");
@@ -398,7 +416,8 @@ function tarjetaTienda(nombre, items) {
   const conteo = document.createElement("span");
   conteo.className = "tienda-conteo";
   conteo.textContent = items.length ? String(items.length) : "";
-  header.append(chevron, nom, conteo);
+  header.append(grip, chevron, nom, conteo);
+  habilitarArrastreTienda(grip, sec);
   if (esTiendaPersonalizada(nombre)) {
     const del = document.createElement("span");
     del.className = "tienda-eliminar";
@@ -509,12 +528,54 @@ function habilitarArrastre(ul, tienda) {
       arrastrado.classList.remove("arrastrando");
       arrastrado = null;
       try { grip.releasePointerCapture(ev.pointerId); } catch {}
-      await guardarOrden(ul);
-      arrastrando = false;
+      try { await guardarOrden(ul); } finally { arrastrando = false; }
     };
     grip.addEventListener("pointerup", fin);
     grip.addEventListener("pointercancel", fin);
   }
+}
+
+// Arrastre para reordenar TIENDAS (asa en el encabezado).
+function habilitarArrastreTienda(grip, sec) {
+  grip.style.touchAction = "none";
+  // Un toque en el asa no debe plegar/desplegar la tienda.
+  grip.addEventListener("click", (ev) => ev.stopPropagation());
+  grip.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const cont = sec.parentElement;
+    if (!cont) return;
+    arrastrando = true;
+    sec.classList.add("arrastrando");
+    grip.setPointerCapture(ev.pointerId);
+
+    const mover = (e) => {
+      const y = e.clientY;
+      const otras = [...cont.querySelectorAll(".tienda:not(.arrastrando)")];
+      const siguiente = otras.find((s) => {
+        const r = s.getBoundingClientRect();
+        return y < r.top + r.height / 2;
+      });
+      if (siguiente) cont.insertBefore(sec, siguiente);
+      else cont.append(sec);
+    };
+    const fin = async (e) => {
+      grip.removeEventListener("pointermove", mover);
+      grip.removeEventListener("pointerup", fin);
+      grip.removeEventListener("pointercancel", fin);
+      sec.classList.remove("arrastrando");
+      try { grip.releasePointerCapture(e.pointerId); } catch {}
+      try { await guardarOrdenTiendas(cont); } finally { arrastrando = false; }
+    };
+    grip.addEventListener("pointermove", mover);
+    grip.addEventListener("pointerup", fin);
+    grip.addEventListener("pointercancel", fin);
+  });
+}
+
+async function guardarOrdenTiendas(cont) {
+  const orden = [...cont.querySelectorAll(".tienda")].map((s) => s.dataset.store);
+  await setDoc(docPrefs(), { storeOrder: orden }, { merge: true });
 }
 
 async function guardarOrden(ul) {

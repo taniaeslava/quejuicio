@@ -362,6 +362,17 @@ code {
   cursor: pointer;
   text-align: left;
 }
+.tienda-grip {
+  flex: none;
+  color: rgba(36, 52, 74, 0.4);
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0 0.15rem;
+  cursor: grab;
+  touch-action: none; /* el asa arrastra sin hacer scroll */
+}
+.tienda-grip:active { cursor: grabbing; }
+.tienda.arrastrando { opacity: 0.6; box-shadow: 0 6px 18px rgba(36, 52, 74, 0.25); }
 .tienda-chevron { transition: transform 0.15s; font-size: 0.9rem; flex: none; }
 .tienda.abierta .tienda-chevron { transform: rotate(90deg); }
 .tienda-nombre { flex: 1; }

@@ -11,7 +11,10 @@ Además tiene una **lista de compras** compartida (pestaña «Compras» abajo),
 al estilo Google Keep pero **agrupada por tiendas** plegables (Edeka, Ikea,
 Amazon, Tedi y las que agregues). Marcas un artículo cuando lo compras y
 desaparece, pero la app lo recuerda: la próxima vez que empieces a escribirlo
-te lo sugiere. Hay «Deshacer» por si marcas uno sin querer.
+te lo sugiere. Hay «Deshacer» por si marcas uno sin querer. Puedes **pegar
+varias líneas de golpe** (p. ej. copiadas de Notion) y cada renglón se vuelve
+un artículo, y **reordenar** tanto los artículos como las tiendas arrastrando
+desde el asa (⠿).
 
 Todo con servicios en capa gratuita: hosting estático (Vercel/Netlify),
 Firestore para sincronizar, Firebase Cloud Messaging (FCM) para el push y
@@ -43,7 +46,11 @@ households/{codigo}/tokens/{fcmToken}  { token, userAgent, createdAt }
 households/{codigo}/shopping/{itemId}  { name, store, createdAt }        ← artículos por comprar
 households/{codigo}/stores/{storeId}   { name, createdAt }               ← tiendas agregadas por el usuario
 households/{codigo}/pantry/{clave}     { name, store, lastBought }       ← memoria para autocompletar
+households/{codigo}/prefs/general      { storeOrder: [nombres…] }        ← orden manual de las tiendas
 ```
+
+Los artículos llevan un campo `order` numérico para el orden manual; las
+tiendas se ordenan según `prefs/general.storeOrder`.
 
 Las tareas recurrentes tienen `once: false` y `frequencyDays` en días; las
 de una sola vez tienen `once: true` y `frequencyDays: null`, no generan
