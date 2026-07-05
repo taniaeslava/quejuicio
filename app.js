@@ -498,7 +498,64 @@ function filaItem(item) {
   chk.addEventListener("change", () => { if (chk.checked) comprarItem(item); });
 
   li.append(grip, label);
+  habilitarSwipe(li, item);
   return li;
+}
+
+// Swipe a la derecha para ELIMINAR del todo (sin guardar en la despensa).
+// Se distingue del checkbox (comprar) y del arrastre vertical del asa.
+function habilitarSwipe(li, item) {
+  const UMBRAL = 90; // px que hay que arrastrar para que borre
+  let x0 = 0, y0 = 0, eje = null, dx = 0, activo = false;
+
+  li.addEventListener("pointerdown", (e) => {
+    if (e.target.closest(".item-grip")) return; // el asa es para reordenar
+    x0 = e.clientX; y0 = e.clientY; eje = null; dx = 0; activo = true;
+    li.style.transition = "none";
+  });
+  li.addEventListener("pointermove", (e) => {
+    if (!activo) return;
+    const mx = e.clientX - x0, my = e.clientY - y0;
+    if (eje === null && (Math.abs(mx) > 8 || Math.abs(my) > 8)) {
+      eje = Math.abs(mx) > Math.abs(my) ? "x" : "y";
+      if (eje === "x") { try { li.setPointerCapture(e.pointerId); } catch {} }
+    }
+    if (eje === "x") {
+      e.preventDefault();
+      dx = Math.max(0, mx); // solo hacia la derecha
+      li.style.transform = `translateX(${dx}px)`;
+      li.classList.toggle("swipe-borrar", dx > UMBRAL);
+    }
+  });
+  const soltar = () => {
+    if (!activo) return;
+    activo = false;
+    if (eje === "x") li.dataset.swiped = "1"; // que el swipe no marque el checkbox
+    li.style.transition = "transform 0.2s ease";
+    if (eje === "x" && dx > UMBRAL) {
+      li.style.transform = "translateX(110%)";
+      eliminarItem(item);
+    } else {
+      li.style.transform = "";
+      li.classList.remove("swipe-borrar");
+    }
+  };
+  li.addEventListener("pointerup", soltar);
+  li.addEventListener("pointercancel", soltar);
+  li.addEventListener("click", (e) => {
+    if (li.dataset.swiped) { e.preventDefault(); e.stopPropagation(); delete li.dataset.swiped; }
+  }, true);
+}
+
+async function eliminarItem(item) {
+  try {
+    await deleteDoc(doc(coleccionCompras(), item.id)); // NO se guarda en despensa
+    ultimoBorrado = { name: item.name, store: item.store };
+    avisarDeshacer(`«${item.name}» eliminado`, deshacerCompra);
+  } catch (err) {
+    console.error(err);
+    avisar("No se pudo eliminar.");
+  }
 }
 
 // Arrastre táctil/mouse para reordenar; el asa (grip) inicia el gesto.

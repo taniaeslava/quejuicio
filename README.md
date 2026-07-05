@@ -9,9 +9,10 @@ quedan en la lista hasta que se hacen y desaparecen al marcarlas.
 
 Además tiene una **lista de compras** compartida (pestaña «Compras» abajo),
 al estilo Google Keep pero **agrupada por tiendas** plegables (Edeka, Ikea,
-Amazon, Tedi y las que agregues). Marcas un artículo cuando lo compras y
-desaparece, pero la app lo recuerda: la próxima vez que empieces a escribirlo
-te lo sugiere. Hay «Deshacer» por si marcas uno sin querer. Puedes **pegar
+Amazon, Tedi y las que agregues). Dos formas de sacar un artículo de la lista:
+**marcar el checkbox** = «ya lo compré» (desaparece pero queda en la memoria
+para autocompletar), o **deslizar a la derecha** = «ya no lo quiero» (se
+elimina sin guardarlo en memoria). Ambas tienen «Deshacer». Puedes **pegar
 varias líneas de golpe** (p. ej. copiadas de Notion) y cada renglón se vuelve
 un artículo, y **reordenar** tanto los artículos como las tiendas arrastrando
 desde el asa (⠿).
