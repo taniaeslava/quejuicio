@@ -908,6 +908,14 @@ $("#btn-salir").addEventListener("click", () => {
   }
 });
 
+// Registrar el service worker al abrir (cachea la app y permite que Chrome
+// la instale como WebAPK independiente, no como acceso directo a Chrome).
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("./firebase-messaging-sw.js")
+    .catch((err) => console.error("SW:", err));
+}
+
 // Refresca los anillos si la pestaña quedó abierta de un día para otro.
 setInterval(pintarLista, 60 * 60 * 1000);
 

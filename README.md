@@ -31,7 +31,8 @@ quejuicio/
 ├── style.css                  estilo azulejo (crema, cobalto, terracota)
 ├── app.js                     lógica: Firestore, tareas, lista de compras, push
 ├── config.js                  ⚠️ pega aquí la config de TU proyecto Firebase
-├── firebase-messaging-sw.js   ⚠️ duplica la config (los SW no importan módulos)
+├── firebase-messaging-sw.js   service worker: push + caché offline + instalable como WebAPK
+│                               ⚠️ duplica la config (los SW no importan módulos)
 ├── manifest.webmanifest       para "añadir a pantalla de inicio"
 ├── icons/                     iconos de la app
 ├── firestore.rules            reglas de seguridad de Firestore

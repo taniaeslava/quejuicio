@@ -1,4 +1,8 @@
-// Service worker de QueJuicio: recibe push cuando la app está cerrada.
+// Service worker de QueJuicio. Hace dos cosas:
+//  1) Recibe push cuando la app está cerrada (Firebase Messaging).
+//  2) Cachea la app (más abajo) para que funcione sin internet Y para que
+//     Chrome la instale como WebAPK independiente (app propia, no un simple
+//     acceso directo que abre Chrome).
 // Los service workers no pueden importar módulos ES, así que la
 // configuración de Firebase está DUPLICADA aquí a mano — si cambias
 // config.js, cambia también estos valores.
@@ -35,5 +39,52 @@ self.addEventListener("notificationclick", (event) => {
       const app = abiertas.find((c) => "focus" in c);
       return app ? app.focus() : clients.openWindow("./");
     }),
+  );
+});
+
+/* ── Caché de la app (para instalar como WebAPK y funcionar sin internet) ──
+   Sube el número de versión cuando cambies archivos y quieras forzar caché
+   nueva. La estrategia es "red primero": si hay internet siempre ves lo
+   último; si no, se sirve lo guardado. */
+const CACHE = "quejuicio-v1";
+const APP_SHELL = [
+  "./",
+  "./index.html",
+  "./style.css",
+  "./app.js",
+  "./config.js",
+  "./manifest.webmanifest",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(APP_SHELL)).then(() => self.skipWaiting()),
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((claves) => Promise.all(claves.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+  // Solo manejamos lo del propio sitio; Firestore, FCM y las fuentes pasan
+  // directo a la red sin tocarlos.
+  if (new URL(req.url).origin !== self.location.origin) return;
+  event.respondWith(
+    fetch(req)
+      .then((res) => {
+        const copia = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copia));
+        return res;
+      })
+      .catch(() => caches.match(req).then((r) => r || caches.match("./index.html"))),
   );
 });
