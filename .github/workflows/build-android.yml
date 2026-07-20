@@ -13,7 +13,7 @@ on:
       - ".github/workflows/build-android.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -58,3 +58,16 @@ jobs:
           name: QueJuicio-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      # Además del artefacto, publica el APK como "Release": queda con un
+      # enlace de descarga directo y estable (se puede abrir hasta desde el
+      # teléfono). Cada compilación reemplaza la anterior.
+      - name: Publicar el APK como Release (enlace directo)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk QueJuicio.apk
+          gh release delete quejuicio-app --yes --cleanup-tag 2>/dev/null || true
+          gh release create quejuicio-app QueJuicio.apk \
+            --title "QueJuicio — app para Android" \
+            --notes "Descarga **QueJuicio.apk** aquí abajo e instálala en el teléfono. Es la última versión."
