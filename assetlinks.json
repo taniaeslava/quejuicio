@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.netlify.steady_tulumba_1e05e4.twa",
+      "sha256_cert_fingerprints": [
+        "A2:F6:FE:63:46:02:B7:C8:2E:45:A7:B8:47:B8:59:1B:C4:0E:DF:F3:FE:D2:DD:20:EB:C9:68:8C:4D:B7:15:DC"
+      ]
+    }
+  }
+]
