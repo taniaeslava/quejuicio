@@ -1,0 +1,10 @@
+{
+  "appId": "com.quejuicio.app",
+  "appName": "QueJuicio",
+  "webDir": "www",
+  "backgroundColor": "#F5E9D8",
+  "server": {
+    "url": "https://steady-tulumba-1e05e4.netlify.app",
+    "androidScheme": "https"
+  }
+}

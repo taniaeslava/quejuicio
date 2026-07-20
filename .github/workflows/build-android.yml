@@ -1,0 +1,60 @@
+# Compila QueJuicio como app Android nativa (Capacitor + System WebView) en la
+# nube, sin necesidad de instalar nada en el computador. Al terminar, el APK
+# queda disponible para descargar en la propia ejecución (sección "Artifacts").
+name: Compilar app Android
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - "capacitor.config.json"
+      - "package.json"
+      - "assets/**"
+      - ".github/workflows/build-android.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Preparar Java (necesario para compilar Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dependencias de Capacitor
+        run: npm install --no-audit --no-fund
+
+      - name: Crear el proyecto Android
+        run: npx cap add android
+
+      - name: Sincronizar la configuración
+        run: npx cap sync android
+
+      - name: Generar íconos y splash
+        run: npx capacitor-assets generate --android
+        continue-on-error: true
+
+      - name: Compilar el APK (debug, ya firmado e instalable)
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+
+      - name: Publicar el APK como artefacto descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: QueJuicio-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
