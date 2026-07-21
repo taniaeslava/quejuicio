@@ -908,8 +908,8 @@ $("#btn-salir").addEventListener("click", () => {
   }
 });
 
-// Registrar el service worker al abrir (cachea la app y permite que Chrome
-// la instale como WebAPK independiente, no como acceso directo a Chrome).
+// Registrar el service worker al abrir: cachea la app para que funcione sin
+// internet y para que sea instalable como PWA desde el navegador.
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker
     .register("./firebase-messaging-sw.js")

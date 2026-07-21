@@ -111,23 +111,19 @@ Firestore no permite listar hogares desde el cliente, así que nadie puede
 descubrir el código por fuerza bruta razonable. Usa un código largo
 (mínimo 8 caracteres, mejor una frase: `girasoles-en-berlin-2026`).
 
-### 4. Desplegar el sitio (Vercel o Netlify, gratis)
+### 4. Desplegar el sitio (Netlify, gratis)
 
-Es un sitio estático puro, sin build. Dos opciones:
+Es un sitio estático puro, sin build. La forma recomendada es **conectar el
+repositorio de GitHub a Netlify** (sube el repo primero, ver paso 6): en
+Netlify → **Add new site → Import an existing project → GitHub** → elige el
+repo. Gracias al `netlify.toml` (que declara "sitio estático, sin
+compilación"), Netlify publica los archivos tal cual. A partir de ahí **cada
+push a GitHub se despliega solo** — no hay que subir nada a mano.
 
-**Netlify (arrastrar y soltar):** entra a
-[app.netlify.com/drop](https://app.netlify.com/drop) y arrastra la carpeta
-`quejuicio` completa. Listo. Para actualizar, vuelve a arrastrar.
+Alternativa rápida sin git: [app.netlify.com/drop](https://app.netlify.com/drop)
+y arrastra la carpeta `quejuicio`.
 
-**Vercel (CLI):**
-```bash
-npm i -g vercel
-cd quejuicio
-vercel --prod
-```
-
-Cualquiera de los dos da HTTPS, que es **obligatorio** para service workers
-y notificaciones push.
+Netlify da HTTPS, que es **obligatorio** para service workers y notificaciones.
 
 ### 5. Instalar en los teléfonos
 
@@ -140,6 +136,11 @@ Abran la URL en ambos teléfonos y escriban **el mismo código de hogar**.
 - **Android (Chrome):** menú ⋮ → **«Añadir a pantalla de inicio»** /
   «Instalar app». El push funciona incluso sin instalar, pero instalada
   se comporta como app normal. Igual: Ajustes → Activar notificaciones.
+- **App Android nativa (opcional, recomendado):** hay un APK que se instala
+  como app de verdad —con su propio paquete, no cuenta como navegador— útil si
+  usas apps que limitan el navegador. Se descarga desde la sección **Releases**
+  del repo. La compila sola el workflow `build-android.yml`; los archivos de esa
+  app viven en [android-app/](android-app/) (ver [CLAUDE.md](CLAUDE.md)).
 
 ### 6. Configurar el aviso diario (GitHub Actions)
 

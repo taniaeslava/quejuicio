@@ -35,7 +35,7 @@ por Firestore. Para el "qué y por qué" en lenguaje humano, ver
 
 ## Mapa de archivos
 
-```
+# La app WEB (lo que ven los teléfonos) vive en la raíz:
 index.html                  Pantalla de entrada + pantalla principal (2 vistas) + diálogos
 style.css                   Estilo azulejo; tokens de color en :root
 app.js                      TODA la lógica del frontend (un solo módulo)
@@ -44,11 +44,15 @@ firebase-messaging-sw.js    Service worker: push + caché offline
 manifest.webmanifest        Manifiesto PWA
 firestore.rules             Reglas de seguridad de Firestore
 icons/                      Íconos de la PWA
+netlify.toml                Config de Netlify (sitio estático, sin compilación)
 notify/index.js             Script diario de notificaciones (Node + Admin SDK, corre en Actions)
 .github/workflows/          notify.yml (avisos diarios) y build-android.yml (compila el APK)
-capacitor.config.json       Config de la app Android (Capacitor)
-assets/, www/               Insumos para compilar la app Android
-```
+
+# La app ANDROID nativa (Capacitor) vive aparte, en android-app/:
+android-app/capacitor.config.json   Config de la app (carga el sitio de Netlify vía System WebView)
+android-app/assets/                 Ícono y splash para compilar
+android-app/www/                    Placeholder que Capacitor exige (la app carga el sitio en vivo)
+android-app/package.json            Dependencias de Capacitor (solo para el build en la nube)
 
 ## Cómo está organizado `app.js`
 
@@ -142,15 +146,16 @@ tener las reglas publicadas.
 
 ## Despliegue (hay TRES destinos, con roles distintos)
 
-1. **Netlify** = el sitio que ven los teléfonos. Para publicar cambios del
-   frontend: arrastrar la carpeta a Netlify. **La app Android carga este sitio
-   en vivo**, así que los cambios de HTML/CSS/JS llegan a la app con solo
-   redesplegar en Netlify — NO hace falta recompilar el APK.
-2. **GitHub** = respaldo + corre el workflow de notificaciones diarias. Haz
-   commit y push de todo cambio.
+1. **GitHub** = respaldo + dispara todo lo demás. Haz commit y push de cada
+   cambio. **Netlify está conectado a este repo: al hacer push, se despliega
+   solo** (no hay que arrastrar nada).
+2. **Netlify** = el sitio que ven los teléfonos (se actualiza solo con el push).
+   **La app Android carga este sitio en vivo**, así que los cambios de
+   HTML/CSS/JS llegan a la app con solo hacer push — NO hace falta recompilar el
+   APK ni reinstalar.
 3. **APK (Capacitor)** = la app Android nativa. Solo hay que **recompilarla** si
-   cambian `capacitor.config.json` o los íconos (`assets/`) — para eso está el
-   workflow `build-android.yml` (Actions → "Compilar app Android" → Run). Para
+   cambian archivos dentro de `android-app/` (config o íconos) — el workflow
+   `build-android.yml` lo hace en la nube y publica el APK en "Releases". Para
    cambios normales del frontend NO se recompila.
 
 ## Notas / limitaciones conocidas

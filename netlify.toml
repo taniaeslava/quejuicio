@@ -1,9 +1,6 @@
-# Sirve el assetlinks.json (verificación de la app Android) en su ruta oficial
-# /.well-known/assetlinks.json, aunque el archivo real esté en la raíz. Esto
-# evita el problema de que Netlify, al arrastrar la carpeta, ignore las
-# carpetas ocultas que empiezan por punto (como .well-known).
-[[redirects]]
-  from = "/.well-known/assetlinks.json"
-  to = "/assetlinks.json"
-  status = 200
-  force = true
+# QueJuicio es un sitio estático puro (HTML/CSS/JS, sin compilación). Netlify
+# publica la carpeta tal cual. Como los archivos de la app Android viven en
+# android-app/ (fuera de la raíz), Netlify no intenta "construir" nada.
+[build]
+  publish = "."
+  command = ""
