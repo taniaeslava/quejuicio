@@ -32,6 +32,7 @@ let desuscribirTiendas = null;
 let desuscribirDespensa = null;
 let ultimoBorrado = null; // para "Deshacer" al marcar comprado
 let arrastrando = false;  // true mientras se reordena algo (pausa el re-render)
+let arrastrandoDesde = 0; // momento en que empezó; sirve de red de seguridad
 let ordenTiendas = [];    // orden manual de las tiendas (se guarda en prefs/general)
 let desuscribirPrefs = null;
 const TIENDAS_DEFECTO = ["Edeka", "Ikea", "Amazon", "Tedi"];
@@ -359,7 +360,11 @@ function esTiendaPersonalizada(nombre) {
 }
 
 function pintarCompras() {
-  if (arrastrando) return; // no re-renderizar en medio de un arrastre
+  // No re-renderizar en medio de un arrastre real. Red de seguridad: si el
+  // estado "arrastrando" quedó pegado por un gesto que no cerró bien, se libera
+  // solo tras 4 s para que la lista nunca quede bloqueada.
+  if (arrastrando && Date.now() - arrastrandoDesde < 4000) return;
+  arrastrando = false;
   const cont = $("#lista-tiendas");
   // Un cambio del otro teléfono dispara un re-render; guardamos el input en
   // edición (tienda, texto y cursor) para restaurarlo y no interrumpir.
@@ -574,6 +579,7 @@ function habilitarArrastre(ul, tienda) {
         if (Math.abs(ev.clientY - y0) < UMBRAL_ARRASTRE) return; // todavía es un toque
         moviendo = true;
         arrastrando = true;
+        arrastrandoDesde = Date.now();
         li.classList.add("arrastrando");
       }
       const y = ev.clientY;
@@ -626,6 +632,7 @@ function habilitarArrastreTienda(grip, sec) {
       if (Math.abs(ev.clientY - y0) < UMBRAL_ARRASTRE) return; // todavía es un toque
       moviendo = true;
       arrastrando = true;
+      arrastrandoDesde = Date.now();
       sec.classList.add("arrastrando");
     }
     const y = ev.clientY;
