@@ -558,72 +558,107 @@ async function eliminarItem(item) {
   }
 }
 
-// Arrastre táctil/mouse para reordenar; el asa (grip) inicia el gesto.
+/* Arrastre para reordenar ÍTEMS (asa ⠿ de cada fila).
+   Clave anti-bloqueo: el estado "arrastrando" se activa SOLO cuando el dedo
+   se mueve de verdad (> UMBRAL px). Un toque simple nunca deja la lista
+   trabada. Y `fin` siempre limpia el estado, pase lo que pase. */
+const UMBRAL_ARRASTRE = 6;
 function habilitarArrastre(ul, tienda) {
-  let arrastrado = null;
   for (const grip of ul.querySelectorAll(".item-grip")) {
-    grip.addEventListener("pointerdown", (ev) => {
-      ev.preventDefault();
-      arrastrado = grip.closest(".item");
-      arrastrando = true;
-      arrastrado.classList.add("arrastrando");
-      grip.setPointerCapture(ev.pointerId);
-    });
-    grip.addEventListener("pointermove", (ev) => {
-      if (!arrastrado) return;
+    const li = grip.closest(".item");
+    let y0 = 0, activo = false, moviendo = false;
+
+    const mover = (ev) => {
+      if (!activo) return;
+      if (!moviendo) {
+        if (Math.abs(ev.clientY - y0) < UMBRAL_ARRASTRE) return; // todavía es un toque
+        moviendo = true;
+        arrastrando = true;
+        li.classList.add("arrastrando");
+      }
       const y = ev.clientY;
       const otros = [...ul.querySelectorAll(".item:not(.arrastrando)")];
       const siguiente = otros.find((s) => {
         const r = s.getBoundingClientRect();
         return y < r.top + r.height / 2;
       });
-      if (siguiente) ul.insertBefore(arrastrado, siguiente);
-      else ul.append(arrastrado);
-    });
-    const fin = async (ev) => {
-      if (!arrastrado) return;
-      arrastrado.classList.remove("arrastrando");
-      arrastrado = null;
-      try { grip.releasePointerCapture(ev.pointerId); } catch {}
-      try { await guardarOrden(ul); } finally { arrastrando = false; }
+      if (siguiente) ul.insertBefore(li, siguiente);
+      else ul.append(li);
     };
-    grip.addEventListener("pointerup", fin);
-    grip.addEventListener("pointercancel", fin);
+    const fin = async (ev) => {
+      grip.removeEventListener("pointermove", mover);
+      grip.removeEventListener("pointerup", fin);
+      grip.removeEventListener("pointercancel", fin);
+      try { grip.releasePointerCapture(ev.pointerId); } catch {}
+      const huboArrastre = moviendo;
+      activo = false;
+      moviendo = false;
+      li.classList.remove("arrastrando");
+      if (huboArrastre) {
+        try { await guardarOrden(ul); } finally { arrastrando = false; pintarCompras(); }
+      }
+    };
+    grip.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault();
+      y0 = ev.clientY;
+      activo = true;
+      moviendo = false;
+      try { grip.setPointerCapture(ev.pointerId); } catch {}
+      grip.addEventListener("pointermove", mover);
+      grip.addEventListener("pointerup", fin);
+      grip.addEventListener("pointercancel", fin);
+    });
   }
 }
 
-// Arrastre para reordenar TIENDAS (asa en el encabezado).
+/* Arrastre para reordenar TIENDAS (asa ⠿ del encabezado). Mismo criterio
+   anti-bloqueo que los ítems: solo arrastra si el dedo se mueve de verdad. */
 function habilitarArrastreTienda(grip, sec) {
   grip.style.touchAction = "none";
   // Un toque en el asa no debe plegar/desplegar la tienda.
   grip.addEventListener("click", (ev) => ev.stopPropagation());
+
+  let y0 = 0, activo = false, moviendo = false, cont = null;
+
+  const mover = (ev) => {
+    if (!activo) return;
+    if (!moviendo) {
+      if (Math.abs(ev.clientY - y0) < UMBRAL_ARRASTRE) return; // todavía es un toque
+      moviendo = true;
+      arrastrando = true;
+      sec.classList.add("arrastrando");
+    }
+    const y = ev.clientY;
+    const otras = [...cont.querySelectorAll(".tienda:not(.arrastrando)")];
+    const siguiente = otras.find((s) => {
+      const r = s.getBoundingClientRect();
+      return y < r.top + r.height / 2;
+    });
+    if (siguiente) cont.insertBefore(sec, siguiente);
+    else cont.append(sec);
+  };
+  const fin = async (ev) => {
+    grip.removeEventListener("pointermove", mover);
+    grip.removeEventListener("pointerup", fin);
+    grip.removeEventListener("pointercancel", fin);
+    try { grip.releasePointerCapture(ev.pointerId); } catch {}
+    const huboArrastre = moviendo;
+    activo = false;
+    moviendo = false;
+    sec.classList.remove("arrastrando");
+    if (huboArrastre) {
+      try { await guardarOrdenTiendas(cont); } finally { arrastrando = false; pintarCompras(); }
+    }
+  };
   grip.addEventListener("pointerdown", (ev) => {
     ev.preventDefault();
     ev.stopPropagation();
-    const cont = sec.parentElement;
+    cont = sec.parentElement;
     if (!cont) return;
-    arrastrando = true;
-    sec.classList.add("arrastrando");
-    grip.setPointerCapture(ev.pointerId);
-
-    const mover = (e) => {
-      const y = e.clientY;
-      const otras = [...cont.querySelectorAll(".tienda:not(.arrastrando)")];
-      const siguiente = otras.find((s) => {
-        const r = s.getBoundingClientRect();
-        return y < r.top + r.height / 2;
-      });
-      if (siguiente) cont.insertBefore(sec, siguiente);
-      else cont.append(sec);
-    };
-    const fin = async (e) => {
-      grip.removeEventListener("pointermove", mover);
-      grip.removeEventListener("pointerup", fin);
-      grip.removeEventListener("pointercancel", fin);
-      sec.classList.remove("arrastrando");
-      try { grip.releasePointerCapture(e.pointerId); } catch {}
-      try { await guardarOrdenTiendas(cont); } finally { arrastrando = false; }
-    };
+    y0 = ev.clientY;
+    activo = true;
+    moviendo = false;
+    try { grip.setPointerCapture(ev.pointerId); } catch {}
     grip.addEventListener("pointermove", mover);
     grip.addEventListener("pointerup", fin);
     grip.addEventListener("pointercancel", fin);
