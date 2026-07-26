@@ -1,12 +1,18 @@
-# QueJuicio — revisa a diario si hay tareas vencidas y manda push por FCM.
-# GitHub Actions usa UTC: 06:00 UTC = 08:00 en Berlín en verano (CEST)
-# y 07:00 en invierno (CET). Ajusta la hora aquí si les molesta el cambio.
+# QueJuicio — revisa si hay tareas vencidas y manda push por FCM.
+#
+# ⏸️  PAUSADO (julio 2026): la ejecución automática diaria está desactivada.
+# Motivo: las notificaciones web NO llegan a la app Android nativa (el System
+# WebView no soporta push), así que el aviso diario no aportaba y encima fallaba
+# por la credencial. Para reactivarlo, descomenta el bloque "schedule" de abajo
+# (y asegúrate de tener bien el secreto FIREBASE_SERVICE_ACCOUNT). Para
+# notificaciones en la app nativa, la solución correcta es push nativo
+# (@capacitor/push-notifications) — es una tarea aparte.
 name: Avisar tareas vencidas
 
 on:
-  schedule:
-    - cron: "0 6 * * *"
-  workflow_dispatch: {} # permite lanzarlo a mano desde la pestaña Actions
+  # schedule:
+  #   - cron: "0 6 * * *"   # 06:00 UTC (08:00 Berlín verano / 07:00 invierno)
+  workflow_dispatch: {} # solo se puede lanzar a mano desde la pestaña Actions
 
 permissions:
   contents: read
