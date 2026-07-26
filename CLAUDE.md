@@ -32,6 +32,12 @@ por Firestore. Para el "qué y por qué" en lenguaje humano, ver
 5. **`taskStatus()` en `app.js` y `estaVencida()` en `notify/index.js` deben
    quedar consistentes**: ambos definen cuándo una tarea está vencida. Si
    cambias la regla en uno, cámbiala en el otro.
+6. **Cuida los créditos de Netlify.** Cada despliegue a producción cuesta ~15
+   créditos (el plan gratis da 300/mes, o sea ~20 despliegues). Netlify se
+   despliega solo en cada push que toque la app web. Por eso: **agrupa varios
+   cambios en un solo push** en vez de subir cambio por cambio. Los cambios que
+   NO tocan la web (android-app/, notify/, docs .md, firestore.rules) no gastan
+   despliegue — hay una regla `ignore` en `netlify.toml` que los salta.
 
 ## Mapa de archivos
 
