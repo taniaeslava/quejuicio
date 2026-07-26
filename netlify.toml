@@ -4,6 +4,10 @@
 [build]
   publish = "."
   command = ""
+  # Ahorro de créditos: solo desplegar cuando cambie algo de la app WEB. Si el
+  # push solo tocó la app Android, la documentación, los avisos o las reglas,
+  # Netlify se salta el despliegue (git diff sin cambios → sale 0 → skip).
+  ignore = "git diff --quiet HEAD^ HEAD -- . ':!android-app' ':!notify' ':!.github' ':!firestore.rules' ':!*.md'"
 
 # Como la app Android carga el sitio en vivo, no queremos que se quede pegada
 # con una versión vieja: "no-cache" hace que el navegador/WebView revalide con
