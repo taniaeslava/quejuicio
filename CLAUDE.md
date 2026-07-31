@@ -99,12 +99,22 @@ ningún archivo del repo**, que es público — solo se teclea en cada teléfono
 
 ## Diseño (tokens en `style.css` → `:root`)
 
-- Crema `#F5E9D8` (fondo), tinta índigo `#24344A` (texto), cobalto `#2C5C86` y
-  terracota `#C15A34` (acentos). Fuentes: Fraunces (títulos), Inter (texto).
-- Motivos (reutilízalos, no inventes otros): el logo de baldosa enmarcada con
-  estrella, la cenefa `.tile-frieze`, la franja `.tile-strip`, el anillo de
-  frescura, y la retícula tenue del fondo. Todo son SVG embebidos en el CSS
-  como `data:` URI — sin imágenes externas.
+Refresh visual (julio 2026): azulejo más calmado, superficies con sombra en vez
+de bordes. Todos los tokens están en `:root` — úsalos, no inventes colores.
+
+- Fondo `#FBF6EE`; superficie de tarjeta `#FFFDF9`; navy principal `#1E4B73`;
+  texto `#16344D`; terracota `#C25A38`; meta `#9A9082`; etiquetas `#A08D74`.
+  Anillos: verde `#4F7A5B` (lejos), ámbar `#C08A2E` (≤7 días), terracota
+  (vencida).
+- Fuentes: **Lora** (600) para la marca y los nombres de tienda; **DM Sans**
+  para todo lo demás. Tres tamaños: 16 títulos / 15 ítems / 13 meta / 11
+  etiquetas de sección.
+- Patrones clave: tarjeta por grupo (`.grupo-card`, `.tienda`) sin borde y con
+  `--sombra-card`; filas separadas por finas líneas internas (pseudo `::before`);
+  franja de azulejo delgada `.tile-band`; anillo conic-gradient con disco
+  interior; el logo (baldosa con estrella) se mantiene igual, es SVG inline.
+- Las asas de arrastre (⠿) van ocultas salvo en "modo reordenar"
+  (`#vista-compras.reordenando`, lo activa `#btn-reordenar`).
 
 ## RECETA: agregar una tercera pestaña (p. ej. "Notas")
 

@@ -52,7 +52,7 @@ function taskStatus(tarea, ahora = Date.now()) {
   const diasTranscurridos = (ahora - ultimaMs) / DIA_MS;
   const ratio = Math.max(0, diasTranscurridos / tarea.frequencyDays);
   const diasRestantes = Math.ceil(tarea.frequencyDays - diasTranscurridos);
-  const estado = ratio >= 1 ? "vencida" : ratio >= 0.75 ? "pronto" : "fresca";
+  const estado = ratio >= 1 ? "vencida" : diasRestantes <= 7 ? "pronto" : "fresca";
   return { ratio, diasRestantes, estado };
 }
 
@@ -137,59 +137,105 @@ function salirDelHogar() {
   $("#pantalla-entrada").hidden = false;
 }
 
-/* ── Render ── */
+/* ── Render de tareas (agrupadas en tarjetas por tipo) ── */
 function pintarLista() {
-  const lista = $("#lista-tareas");
+  const cont = $("#lista-tareas");
   const ahora = Date.now();
-  // Vencidas primero, luego las de una sola vez, luego por urgencia.
-  const clave = (t) => (t.once ? 1.5 : taskStatus(t, ahora).ratio);
-  const ordenadas = [...tareas].sort((a, b) => clave(b) - clave(a));
-  lista.replaceChildren(...ordenadas.map((t) => tarjetaDeTarea(t, ahora)));
+  const unicas = tareas
+    .filter((t) => t.once)
+    .sort((a, b) => (aMilis(a.createdAt) ?? 0) - (aMilis(b.createdAt) ?? 0));
+  const recurrentes = tareas
+    .filter((t) => !t.once)
+    .sort((a, b) => taskStatus(b, ahora).ratio - taskStatus(a, ahora).ratio);
+
+  cont.replaceChildren();
+  if (unicas.length) cont.append(grupoTareas("UNA SOLA VEZ", unicas, ahora));
+  if (recurrentes.length) cont.append(grupoTareas("RECURRENTES", recurrentes, ahora));
   $("#estado-vacio").hidden = tareas.length > 0;
 }
 
-function tarjetaDeTarea(tarea, ahora) {
+function grupoTareas(etiqueta, items, ahora) {
+  const grupo = document.createElement("div");
+  grupo.className = "grupo";
+  const head = document.createElement("div");
+  head.className = "grupo-label";
+  const etq = document.createElement("span");
+  etq.className = "etq";
+  etq.textContent = etiqueta;
+  const cnt = document.createElement("span");
+  cnt.className = "cuenta";
+  cnt.textContent = String(items.length);
+  head.append(etq, cnt);
+  const card = document.createElement("div");
+  card.className = "grupo-card";
+  for (const t of items) card.append(filaDeTarea(t, ahora));
+  grupo.append(head, card);
+  return grupo;
+}
+
+function filaDeTarea(tarea, ahora) {
   const { ratio, diasRestantes, estado } = taskStatus(tarea, ahora);
-  const li = document.createElement("li");
-  li.className = `tarjeta ${estado}`;
+  const fila = document.createElement("div");
+  fila.className = "fila";
 
-  // Anillo de frescura: se llena a medida que la tarea envejece.
-  // Las de una sola vez llevan anillo punteado con "1×" en vez de cuenta.
-  const CIRCUNFERENCIA = 2 * Math.PI * 16;
-  const offset = CIRCUNFERENCIA * (1 - Math.min(ratio, 1));
-  const etiquetaDias =
-    estado === "unica" ? "1×" : estado === "vencida" ? "¡ya!" : `${diasRestantes}d`;
+  // Anillo: conic-gradient que se llena con lo transcurrido; punteado en las
+  // de una sola vez. Verde (lejos) → ámbar (≤7 días) → terracota (vencida).
+  const anillo = document.createElement("div");
+  anillo.className = `anillo ${estado}`;
+  if (estado !== "unica") {
+    const color = estado === "vencida" ? "#C25A38" : estado === "pronto" ? "#C08A2E" : "#4F7A5B";
+    const pct = Math.round(Math.min(ratio, 1) * 100);
+    anillo.style.background = `conic-gradient(${color} 0 ${pct}%, var(--ring-track) ${pct}% 100%)`;
+  }
+  const disco = document.createElement("div");
+  disco.className = "anillo-disco";
+  disco.textContent = estado === "unica" ? "1×" : estado === "vencida" ? "¡ya!" : `${diasRestantes}d`;
+  anillo.append(disco);
 
-  const detalle =
-    estado === "unica"
-      ? "una sola vez · pendiente"
-      : `${frecuenciaTexto(tarea.frequencyDays)} · última vez ${fechaCorta(tarea.lastDone)} · ` +
-        (estado === "vencida"
-          ? `<span class="vencida-texto">vencida hace ${Math.max(1, -diasRestantes + 1)} día(s)</span>`
-          : `faltan ${diasRestantes} día(s)`);
+  const cuerpo = document.createElement("div");
+  cuerpo.className = "fila-cuerpo";
+  const titulo = document.createElement("div");
+  titulo.className = "fila-titulo";
+  titulo.textContent = tarea.name;
+  const meta = document.createElement("div");
+  meta.className = "fila-meta";
+  meta.textContent = metaTarea(tarea, estado, diasRestantes);
+  cuerpo.append(titulo, meta);
 
-  li.innerHTML = `
-    <svg class="anillo" viewBox="0 0 36 36" aria-hidden="true">
-      <circle class="fondo" cx="18" cy="18" r="16"></circle>
-      <circle class="progreso" cx="18" cy="18" r="16"
-        stroke-dasharray="${CIRCUNFERENCIA.toFixed(2)}"
-        stroke-dashoffset="${offset.toFixed(2)}"></circle>
-      <text class="dias" x="18" y="18">${etiquetaDias}</text>
-    </svg>
-    <div>
-      <p class="tarjeta-nombre"></p>
-      <p class="tarjeta-detalle">${detalle}</p>
-    </div>
-    <button class="btn-hecha" type="button">Hecha ✓</button>
-  `;
-  li.querySelector(".tarjeta-nombre").textContent = tarea.name;
-  li.querySelector(".btn-hecha").addEventListener("click", (ev) => {
+  const check = document.createElement("button");
+  check.type = "button";
+  check.className = "btn-hecha";
+  check.setAttribute("aria-label", `Marcar «${tarea.name}» como hecha`);
+  check.textContent = "✓";
+  check.addEventListener("click", (ev) => {
     ev.stopPropagation();
     marcarHecha(tarea);
   });
-  li.addEventListener("click", () => abrirDialogoTarea(tarea));
-  return li;
+
+  fila.append(anillo, cuerpo, check);
+  fila.addEventListener("click", () => abrirDialogoTarea(tarea));
+  return fila;
 }
+
+// Metadatos en UNA sola línea. Lejos → cuándo se hizo; cerca → cuándo vence.
+function metaTarea(tarea, estado, diasRestantes) {
+  if (estado === "unica") return "Pendiente";
+  const freq = mayus(frecuenciaTexto(tarea.frequencyDays));
+  let est;
+  if (estado === "vencida") {
+    const d = Math.max(1, -diasRestantes + 1);
+    est = `vencida hace ${d} día${d === 1 ? "" : "s"}`;
+  } else if (diasRestantes <= 14) {
+    est = diasRestantes <= 0 ? "vence hoy"
+      : diasRestantes === 1 ? "vence mañana"
+      : `vence en ${diasRestantes} días`;
+  } else {
+    est = `hecha el ${fechaCorta(tarea.lastDone)}`;
+  }
+  return `${freq} · ${est}`;
+}
+
+const mayus = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function frecuenciaTexto(dias) {
   if (dias % 30 === 0) {
@@ -400,10 +446,12 @@ function pintarCompras() {
 
 function tarjetaTienda(nombre, items) {
   const abierta = tiendasAbiertas.has(nombre);
+  const vacia = items.length === 0;
   const sec = document.createElement("section");
-  sec.className = "tienda" + (abierta ? " abierta" : "");
+  sec.className = "tienda" + (abierta ? " abierta" : "") + (vacia && !abierta ? " vacia" : "");
   sec.dataset.store = nombre;
 
+  // Encabezado: asa (oculta salvo modo reordenar) · chevron · nombre · conteo.
   const header = document.createElement("button");
   header.type = "button";
   header.className = "tienda-header";
@@ -414,15 +462,21 @@ function tarjetaTienda(nombre, items) {
   const chevron = document.createElement("span");
   chevron.className = "tienda-chevron";
   chevron.setAttribute("aria-hidden", "true");
-  chevron.textContent = "▸";
   const nom = document.createElement("span");
   nom.className = "tienda-nombre";
   nom.textContent = nombre;
-  const conteo = document.createElement("span");
-  conteo.className = "tienda-conteo";
-  conteo.textContent = items.length ? String(items.length) : "";
-  header.append(grip, chevron, nom, conteo);
-  habilitarArrastreTienda(grip, sec);
+  header.append(grip, chevron, nom);
+  if (vacia && !abierta) {
+    const etq = document.createElement("span");
+    etq.className = "tienda-vacia-etq";
+    etq.textContent = "vacía";
+    header.append(etq);
+  } else if (items.length) {
+    const conteo = document.createElement("span");
+    conteo.className = "tienda-conteo";
+    conteo.textContent = String(items.length);
+    header.append(conteo);
+  }
   if (esTiendaPersonalizada(nombre)) {
     const del = document.createElement("span");
     del.className = "tienda-eliminar";
@@ -433,38 +487,47 @@ function tarjetaTienda(nombre, items) {
     header.append(del);
   }
   header.addEventListener("click", () => alternarTienda(nombre));
+  habilitarArrastreTienda(grip, sec);
   sec.append(header);
+
+  if (!abierta) return sec; // colapsada: solo el encabezado
 
   const cuerpo = document.createElement("div");
   cuerpo.className = "tienda-cuerpo";
-  cuerpo.hidden = !abierta;
 
-  const ul = document.createElement("ul");
-  ul.className = "lista-items";
-  // Orden manual (campo order); si falta, por fecha de creación.
-  const ordenados = [...items].sort(
-    (a, b) => (a.order ?? aMilis(a.createdAt) ?? 0) - (b.order ?? aMilis(b.createdAt) ?? 0),
-  );
-  for (const item of ordenados) ul.append(filaItem(item));
-  habilitarArrastre(ul, nombre);
-  cuerpo.append(ul);
+  if (items.length) {
+    const div = document.createElement("div");
+    div.className = "divisor-tienda";
+    cuerpo.append(div);
+    const ul = document.createElement("ul");
+    ul.className = "lista-items";
+    // Orden manual (campo order); si falta, por fecha de creación.
+    const ordenados = [...items].sort(
+      (a, b) => (a.order ?? aMilis(a.createdAt) ?? 0) - (b.order ?? aMilis(b.createdAt) ?? 0),
+    );
+    for (const item of ordenados) ul.append(filaItem(item));
+    habilitarArrastre(ul, nombre);
+    cuerpo.append(ul);
+  }
 
+  // Fila "+ Añadir a X" (input silencioso, sin caja).
   const form = document.createElement("form");
-  form.className = "form-item";
+  form.className = "add-row";
+  const plus = document.createElement("span");
+  plus.className = "add-plus";
+  plus.textContent = "+";
   const input = document.createElement("input");
   input.className = "input-item";
   input.type = "text";
   input.maxLength = 100;
   input.autocomplete = "off";
-  input.placeholder = `Agregar a ${nombre}…`;
-  const sug = document.createElement("div");
-  sug.className = "sugerencias";
-  form.append(input, sug);
+  input.placeholder = `Añadir a ${nombre}`;
+  form.append(plus, input);
   form.addEventListener("submit", (ev) => {
     ev.preventDefault();
     agregarCompra(nombre, input.value);
     input.value = "";
-    sug.replaceChildren();
+    actualizarSugerencias(input, nombre);
   });
   input.addEventListener("input", () => actualizarSugerencias(input, nombre));
   // Pegar varias líneas (p. ej. copiadas de Notion) → un artículo por renglón.
@@ -475,10 +538,14 @@ function tarjetaTienda(nombre, items) {
       const lineas = texto.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
       agregarVariasCompras(nombre, lineas);
       input.value = "";
-      sug.replaceChildren();
+      actualizarSugerencias(input, nombre);
     }
   });
   cuerpo.append(form);
+
+  const sug = document.createElement("div");
+  sug.className = "sugerencias";
+  cuerpo.append(sug);
 
   sec.append(cuerpo);
   return sec;
@@ -726,7 +793,8 @@ function alternarTienda(nombre) {
 }
 
 function actualizarSugerencias(input, tienda) {
-  const sug = input.nextElementSibling;
+  const sug = input.closest(".tienda")?.querySelector(".sugerencias");
+  if (!sug) return;
   const texto = input.value.trim().toLowerCase();
   if (!texto) { sug.replaceChildren(); return; }
   // Nombres ya activos en esta tienda: no los sugerimos otra vez.
@@ -942,6 +1010,13 @@ $("#form-tienda").addEventListener("submit", (ev) => {
   ev.preventDefault();
   agregarTienda($("#tienda-nombre").value);
   $("#dialogo-tienda").close();
+});
+// Modo reordenar: muestra las asas (⠿) para arrastrar tiendas y artículos.
+$("#btn-reordenar").addEventListener("click", () => {
+  const activo = $("#vista-compras").classList.toggle("reordenando");
+  const btn = $("#btn-reordenar");
+  btn.textContent = activo ? "✓ Listo" : "⇅ Reordenar";
+  btn.classList.toggle("activo", activo);
 });
 $("#btn-notificaciones").addEventListener("click", activarNotificaciones);
 $("#btn-salir").addEventListener("click", () => {

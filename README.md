@@ -189,13 +189,13 @@ iguales: `taskStatus()` en [app.js](app.js) (cliente) y `estaVencida()` en
   autenticación.
 - **Sin framework ni build.** Módulos ES por CDN: para redesplegar basta
   con volver a subir los archivos.
-- **Estilo azulejo, inspirado en el juego de mesa "Azul".** Crema `#F5E9D8`,
-  tinta índigo `#24344A`, cobalto `#2C5C86` y terracota `#C15A34`; Fraunces
-  para títulos, Inter para texto. Motivos: la marca de cuatro cuartos de
-  disco (logo, icono, esquinas de cajas y retícula tenue del fondo), la
-  cenefa `.tile-frieze` de azulejos con estrella de ocho puntas bajo el
-  encabezado, y la franja diagonal `.tile-strip` como remate fino en los
-  diálogos. Todo son SVG embebidos en el CSS — sin imágenes externas.
+- **Estilo azulejo "calmado"** (refresh julio 2026). Fondo crema `#FBF6EE`,
+  tarjetas `#FFFDF9` con sombra suave (sin bordes), navy `#1E4B73`, texto
+  `#16344D`, terracota `#C25A38`. Tipografías: Lora (marca y tiendas) y DM Sans
+  (resto). Una tarjeta por grupo, meta en una línea, anillos con significado
+  (verde/ámbar/terracota) y una franja de azulejo delgada bajo el encabezado.
+  El logo (baldosa con estrella) es SVG inline y no se toca. Los detalles del
+  sistema de diseño están en [CLAUDE.md](CLAUDE.md).
 
 ## Solución de problemas
 

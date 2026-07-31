@@ -124,30 +124,36 @@ La estética está inspirada en los **azulejos** —la cerámica decorativa
 española y portuguesa— y en particular en el juego de mesa **Azul**, con sus
 baldosas de colores y estrellas.
 
+En julio de 2026 recibió un **refresh visual**: el mismo espíritu azulejo pero
+más calmado — superficies con sombra suave en vez de bordes, para que las
+pantallas "dejen de gritar".
+
 **Paleta:**
 
 | Color | Uso |
 |---|---|
-| Crema `#F5E9D8` | Fondo (como yeso cálido) |
-| Tinta índigo `#24344A` | Texto |
-| Cobalto `#2C5C86` | Acento principal (azul de azulejo) |
-| Terracota `#C15A34` | Acento cálido (rojo cerámico) |
+| Crema `#FBF6EE` | Fondo (como yeso cálido) |
+| Blanco cálido `#FFFDF9` | Superficie de las tarjetas |
+| Navy `#1E4B73` | Acento principal (azul de azulejo) |
+| Tinta `#16344D` | Texto |
+| Terracota `#C25A38` | Acento cálido (rojo cerámico) |
 
-**Tipografías:** *Fraunces* (con serifas, para títulos) e *Inter* (limpia, para
-el texto).
+**Tipografías:** *Lora* (con serifas, para la marca y los nombres de tienda) y
+*DM Sans* (limpia, para el resto).
 
 **Motivos que se repiten:**
 
-- 🔷 **El logo** — una baldosa cobalto enmarcada, con una estrella de cuatro
+- 🔷 **El logo** — una baldosa navy enmarcada, con una estrella de cuatro
   puntas en terracota. Es también el ícono de la app en el teléfono.
-- 〰️ **La cenefa** — la franja de azulejos con estrellas de ocho puntas que va
-  bajo el encabezado.
-- ⭕ **El anillo de frescura** — el indicador circular de cada tarea, que además
-  usa los mismos colores para que todo se sienta de una sola pieza.
-- 🔳 **La retícula tenue** del fondo, con cuartos de disco en las esquinas.
+- 〰️ **La franja de azulejo** — una línea delgada bajo el encabezado que "firma"
+  la marca sin robar la atención.
+- ⭕ **El anillo de cada tarea** — verde cuando falta mucho, ámbar cuando se
+  acerca, terracota cuando ya venció.
+- 🃏 **Una tarjeta por grupo** — las filas viven dentro de una sola tarjeta con
+  finas líneas divisorias, en vez de muchas cajas sueltas.
 
-Todo el patrón está dibujado dentro del propio código (sin imágenes externas),
-así que la app es liviana y se ve nítida en cualquier pantalla.
+Todo está dibujado dentro del propio código (sin imágenes externas), así que la
+app es liviana y se ve nítida en cualquier pantalla.
 
 ---
 

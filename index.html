@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>QueJuicio</title>
   <meta name="description" content="Tareas del hogar poco frecuentes — te avisa cuando ya toca." />
-  <meta name="theme-color" content="#F5E9D8" />
+  <meta name="theme-color" content="#FBF6EE" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
@@ -14,10 +14,20 @@
   <meta name="apple-mobile-web-app-title" content="QueJuicio" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+  <!-- Logo reutilizable (baldosa enmarcada con estrella) — NO rediseñar. -->
+  <template id="tpl-marca">
+    <svg class="marca" viewBox="0 0 100 100" aria-hidden="true">
+      <rect x="2" y="2" width="96" height="96" rx="22" fill="var(--cobalto)"/>
+      <rect x="17" y="17" width="66" height="66" rx="7" fill="var(--crema)"/>
+      <path d="M50 25 L58 42 L75 50 L58 58 L50 75 L42 58 L25 50 L42 42 Z" fill="var(--terracota)"/>
+      <circle cx="50" cy="50" r="6" fill="var(--cobalto)"/>
+    </svg>
+  </template>
 
   <!-- ── Pantalla de entrada ─────────────────────────────── -->
   <section id="pantalla-entrada" class="pantalla-entrada" hidden>
@@ -29,7 +39,7 @@
         <circle cx="50" cy="50" r="6" fill="var(--cobalto)"/>
       </svg>
       <h1 class="titulo-app">QueJuicio</h1>
-      <div class="tile-frieze" aria-hidden="true"></div>
+      <div class="tile-band" aria-hidden="true"></div>
       <p class="entrada-texto">
         Escribe el <strong>código del hogar</strong> que compartes con tu pareja.
         Si es la primera vez, inventa uno difícil de adivinar y úsenlo en ambos teléfonos.
@@ -54,15 +64,17 @@
           <circle cx="50" cy="50" r="6" fill="var(--cobalto)"/>
         </svg>
         <h1 class="titulo-app titulo-cabecera">QueJuicio</h1>
-        <button id="btn-ajustes" class="btn-icono" type="button" aria-label="Ajustes" title="Ajustes">⚙</button>
+        <button id="btn-ajustes" class="btn-overflow" type="button" aria-label="Ajustes" title="Ajustes">
+          <span></span><span></span><span></span>
+        </button>
       </div>
-      <div class="tile-frieze" aria-hidden="true"></div>
+      <div class="tile-band" aria-hidden="true"></div>
     </header>
 
     <main>
       <!-- ── Vista: Tareas ── -->
       <div id="vista-tareas">
-        <ul id="lista-tareas" class="lista-tareas"></ul>
+        <div id="lista-tareas"></div>
         <div id="estado-vacio" class="estado-vacio" hidden>
           <p class="estado-vacio-titulo">Todavía no hay tareas</p>
           <p class="nota nota-centrada">
@@ -70,7 +82,7 @@
             limpiar la ducha, cambiar un filtro, lavar cortinas… lo que sea.
             QueJuicio te avisa cuando vuelve a tocar hacerlas.
           </p>
-          <button id="btn-primera-tarea" class="btn btn-primario" type="button">＋ Agregar una tarea</button>
+          <button id="btn-primera-tarea" class="btn btn-primario" type="button">Agregar una tarea</button>
           <p class="nota nota-centrada estado-vacio-ejemplos">
             ¿Prefieres arrancar con ejemplos?
             <button id="btn-semilla" class="enlace-boton" type="button">Cargar 3 de ejemplo</button>
@@ -82,7 +94,8 @@
       <!-- ── Vista: Compras ── -->
       <div id="vista-compras" hidden>
         <div id="lista-tiendas" class="lista-tiendas"></div>
-        <button id="btn-nueva-tienda" class="btn btn-tienda-nueva" type="button">＋ Agregar tienda</button>
+        <button id="btn-reordenar" class="fila-tenue" type="button">⇅ Reordenar</button>
+        <button id="btn-nueva-tienda" class="fila-punteada" type="button">＋ Agregar tienda</button>
       </div>
     </main>
 
@@ -91,12 +104,16 @@
     <!-- ── Pestañas inferiores ── -->
     <nav id="barra-pestanas" class="barra-pestanas" aria-label="Secciones">
       <button id="tab-tareas" class="tab activa" type="button" aria-current="page">
-        <span class="tab-icono" aria-hidden="true">✓</span>
-        <span>Tareas</span>
+        <span class="tab-icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </span>
+        <span class="tab-texto">Tareas</span>
       </button>
       <button id="tab-compras" class="tab" type="button">
-        <span class="tab-icono" aria-hidden="true">🛒</span>
-        <span>Compras</span>
+        <span class="tab-icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h2l2.4 12.4a1 1 0 0 0 1 .8h8.6a1 1 0 0 0 1-.8L22 8H7"/><circle cx="10" cy="21" r="1"/><circle cx="18" cy="21" r="1"/></svg>
+        </span>
+        <span class="tab-texto">Compras</span>
       </button>
     </nav>
   </section>
@@ -105,7 +122,7 @@
   <dialog id="dialogo-tarea">
     <form id="form-tarea" method="dialog">
       <h2 id="titulo-dialogo-tarea">Nueva tarea</h2>
-      <div class="tile-strip tile-strip-fina" aria-hidden="true"></div>
+      <div class="tile-band tile-band-fina" aria-hidden="true"></div>
 
       <label for="tarea-nombre">¿Qué hay que hacer?</label>
       <input id="tarea-nombre" type="text" maxlength="100" required
@@ -138,7 +155,7 @@
   <dialog id="dialogo-tienda">
     <form id="form-tienda" method="dialog">
       <h2>Nueva tienda</h2>
-      <div class="tile-strip tile-strip-fina" aria-hidden="true"></div>
+      <div class="tile-band tile-band-fina" aria-hidden="true"></div>
       <label for="tienda-nombre">Nombre de la tienda</label>
       <input id="tienda-nombre" type="text" maxlength="60" required
              placeholder="ej. dm, Rossmann, Lidl" autocomplete="off" />
@@ -154,7 +171,7 @@
   <dialog id="dialogo-ajustes">
     <div class="dialogo-cuerpo">
       <h2>Ajustes</h2>
-      <div class="tile-strip tile-strip-fina" aria-hidden="true"></div>
+      <div class="tile-band tile-band-fina" aria-hidden="true"></div>
 
       <h3>Hogar</h3>
       <p>Código: <code id="ajustes-codigo"></code></p>
