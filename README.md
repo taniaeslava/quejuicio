@@ -49,6 +49,7 @@ households/{codigo}/shopping/{itemId}  { name, store, createdAt }        ← art
 households/{codigo}/stores/{storeId}   { name, createdAt }               ← tiendas agregadas por el usuario
 households/{codigo}/pantry/{clave}     { name, store, lastBought }       ← memoria para autocompletar
 households/{codigo}/prefs/general      { storeOrder: [nombres…] }        ← orden manual de las tiendas
+households/{codigo}/kits/{kitId}       { name, order, items:[{id,label,cat}], checked:{id:true} }  ← listas "no olvidar nada"
 ```
 
 Los artículos llevan un campo `order` numérico para el orden manual; las
@@ -64,10 +65,10 @@ guardan en `stores`. Al marcar un artículo como comprado se borra de
 `shopping` y se guarda (deduplicado por nombre) en `pantry`, de donde salen
 las sugerencias del autocompletado.
 
-> ⚠️ Si ya tenías las reglas publicadas de antes, **hay que volver a
-> publicarlas** — [firestore.rules](firestore.rules) ahora incluye las tres
-> colecciones nuevas (`shopping`, `stores`, `pantry`). Sin eso, la lista de
-> compras da error de permisos.
+> ⚠️ Cada vez que se agrega una colección nueva **hay que volver a publicar las
+> reglas** — [firestore.rules](firestore.rules) cubre `tasks`, `tokens`,
+> `shopping`, `stores`, `pantry`, `prefs` y `kits`. Sin eso, esa función da
+> error de permisos.
 
 ---
 

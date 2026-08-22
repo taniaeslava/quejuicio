@@ -425,3 +425,61 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
   color: var(--crema); font: inherit; font-weight: 600;
   border-radius: 8px; padding: 0.25rem 0.6rem; cursor: pointer; flex: none;
 }
+
+/* ── Kits ── */
+/* lista: cada kit es una tarjeta con nombre + progreso */
+.kit-card {
+  width: 100%;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card);
+  border: none; border-radius: 18px;
+  box-shadow: var(--sombra-card);
+  padding: 16px;
+  cursor: pointer; text-align: left;
+}
+.kit-card-cuerpo { flex: 1; min-width: 0; }
+.kit-card-nombre {
+  font-family: var(--fuente-display);
+  font-size: 18px; font-weight: 600; color: var(--cobalto);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.kit-card-prog { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.kit-card-chevron {
+  width: 8px; height: 8px; flex: none;
+  border-top: 1.5px solid var(--label); border-right: 1.5px solid var(--label);
+  transform: rotate(45deg);
+}
+
+/* detalle de un kit */
+.kit-detalle-cabecera { margin-bottom: 18px; }
+.kit-volver {
+  background: none; border: none; padding: 4px 0;
+  font: inherit; font-size: 14px; font-weight: 500; color: var(--cobalto);
+  cursor: pointer; margin-bottom: 6px;
+}
+.kit-titulo { font-family: var(--fuente-display); font-size: 24px; font-weight: 600; color: var(--cobalto); margin: 0; }
+.kit-progreso { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.kit-barra { height: 6px; border-radius: 999px; background: var(--ring-track); margin-top: 8px; overflow: hidden; }
+.kit-barra-relleno { height: 100%; background: var(--verde); border-radius: 999px; transition: width 0.2s ease; }
+
+/* ítem de kit: reusa el look de .item, con botón de editar */
+.kit-item .item-editar {
+  background: none; border: none; flex: none;
+  color: rgba(30, 75, 115, 0.4); font-size: 1rem; cursor: pointer;
+  padding: 0 0.3rem;
+}
+.kit-item input[type="checkbox"]:checked + span { color: var(--muted); text-decoration: line-through; }
+
+.kit-acciones { display: flex; gap: 0.6rem; margin-top: 20px; }
+.kit-acciones .btn { flex: 1; }
+
+/* chips de plantilla en el diálogo de nuevo kit */
+.chips-plantilla { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.4rem; }
+.chip-plantilla {
+  background: rgba(30, 75, 115, 0.08);
+  border: none; border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  font: inherit; font-size: 0.9rem; font-weight: 500; color: var(--cobalto);
+  cursor: pointer;
+}
+.chip-plantilla:active { background: var(--navy-tint); }

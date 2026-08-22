@@ -47,9 +47,9 @@ teléfonos a la misma información.
 
 ---
 
-## Las dos secciones
+## Las tres secciones
 
-Abajo de la pantalla hay dos pestañas: **Tareas** y **Compras**.
+Abajo de la pantalla hay tres pestañas: **Tareas**, **Compras** y **Kits**.
 
 ### 📋 Tareas
 
@@ -100,6 +100,20 @@ Otras cosas que puedes hacer:
 - **Reordenar** artículos y tiendas arrastrándolos desde el asa (⠿).
 - **Autocompletado inteligente**: sugiere cosas que ya has comprado antes, para
   no reescribir "pañitos húmedos" cada vez.
+
+### 🎒 Kits
+
+Listas para **no olvidar nada** al preparar una actividad: un asado, un viaje,
+la playa, un picnic… Cada kit es una **plantilla accionable** con los ítems
+agrupados por categorías, enfocada en lo que **se suele olvidar** (la sal, el
+destapador, el repelente, el adaptador de enchufe…).
+
+- Empiezas con una **plantilla** (Asado, Viaje, Playa, Picnic) o creas un kit
+  **desde cero**.
+- Vas **marcando** cada ítem mientras alistas; una barra muestra el progreso.
+- Es **tuyo y editable**: agrega, edita o borra ítems y categorías.
+- Como las actividades se repiten, cada kit tiene **"Desmarcar todo"** para
+  dejarlo listo para la próxima.
 
 ---
 

@@ -4,7 +4,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore, collection, doc, onSnapshot,
   addDoc, updateDoc, deleteDoc, setDoc,
-  serverTimestamp, Timestamp, deleteField,
+  serverTimestamp, Timestamp, deleteField, arrayUnion,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getMessaging, getToken, onMessage, isSupported as messagingIsSupported,
@@ -35,6 +35,12 @@ let arrastrando = false;  // true mientras se reordena algo (pausa el re-render)
 let arrastrandoDesde = 0; // momento en que empezó; sirve de red de seguridad
 let ordenTiendas = [];    // orden manual de las tiendas (se guarda en prefs/general)
 let desuscribirPrefs = null;
+
+// ── Kits (listas para no olvidar nada) ──
+let kits = [];            // { id, name, order, items:[{id,label,cat}], checked:{id:true} }
+let desuscribirKits = null;
+let kitAbiertoId = null;  // id del kit cuyo detalle se está viendo (null = lista)
+let itemKitEnEdicion = null; // { itemId } al editar; null al agregar
 const TIENDAS_DEFECTO = ["Edeka", "Ikea", "Amazon", "Tedi"];
 const tiendasAbiertas = new Set(
   JSON.parse(localStorage.getItem("queJuicio.tiendasAbiertas") || "[]"),
@@ -71,6 +77,7 @@ const coleccionCompras = () => collection(db, "households", codigoHogar, "shoppi
 const coleccionTiendas = () => collection(db, "households", codigoHogar, "stores");
 const coleccionDespensa = () => collection(db, "households", codigoHogar, "pantry");
 const docPrefs = () => doc(db, "households", codigoHogar, "prefs", "general");
+const coleccionKits = () => collection(db, "households", codigoHogar, "kits");
 
 function entrarAlHogar(codigo) {
   codigoHogar = codigo;
@@ -111,9 +118,15 @@ function entrarAlHogar(codigo) {
     ordenTiendas = snap.data()?.storeOrder || [];
     pintarCompras();
   }, errorCompras);
+  desuscribirKits?.();
+  desuscribirKits = onSnapshot(coleccionKits(), (snap) => {
+    kits = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    pintarKits();
+  }, errorCompras);
 
-  // Pintar ya las tiendas por defecto, sin esperar a Firestore.
+  // Pintar ya el estado inicial, sin esperar a Firestore.
   pintarCompras();
+  pintarKits();
   mostrarVista(localStorage.getItem("queJuicio.vista") || "tareas");
 }
 
@@ -123,7 +136,8 @@ function salirDelHogar() {
   desuscribirTiendas?.();
   desuscribirDespensa?.();
   desuscribirPrefs?.();
-  desuscribir = desuscribirCompras = desuscribirTiendas = desuscribirDespensa = desuscribirPrefs = null;
+  desuscribirKits?.();
+  desuscribir = desuscribirCompras = desuscribirTiendas = desuscribirDespensa = desuscribirPrefs = desuscribirKits = null;
   localStorage.removeItem("queJuicio.hogar");
   codigoHogar = "";
   tareas = [];
@@ -131,6 +145,8 @@ function salirDelHogar() {
   tiendasExtra = [];
   despensa = [];
   ordenTiendas = [];
+  kits = [];
+  kitAbiertoId = null;
   mostrarVista("tareas");
   $("#dialogo-ajustes").close();
   $("#pantalla-principal").hidden = true;
@@ -376,14 +392,15 @@ async function eliminarTarea() {
   $("#dialogo-tarea").close();
 }
 
-/* ── Pestañas: Tareas / Compras ── */
+/* ── Pestañas: Tareas / Compras / Kits ── */
 function mostrarVista(cual) {
-  const esTareas = cual === "tareas";
-  $("#vista-tareas").hidden = !esTareas;
-  $("#vista-compras").hidden = esTareas;
-  $("#btn-nueva").hidden = !esTareas; // el FAB "+" es solo para tareas
-  $("#tab-tareas").classList.toggle("activa", esTareas);
-  $("#tab-compras").classList.toggle("activa", !esTareas);
+  const vistas = ["tareas", "compras", "kits"];
+  if (!vistas.includes(cual)) cual = "tareas";
+  for (const v of vistas) {
+    $(`#vista-${v}`).hidden = v !== cual;
+    $(`#tab-${v}`).classList.toggle("activa", v === cual);
+  }
+  $("#btn-nueva").hidden = cual !== "tareas"; // el FAB "+" es solo para tareas
   localStorage.setItem("queJuicio.vista", cual);
 }
 
@@ -902,6 +919,415 @@ async function eliminarTienda(nombre, items) {
   await deleteDoc(doc(coleccionTiendas(), extra.id));
 }
 
+/* ── Kits (listas para no olvidar nada) ─────────────────────
+   Cada kit vive en households/{code}/kits/{id} con:
+     items:   [{ id, label, cat }]     (cat = categoría)
+     checked: { [itemId]: true }       (mapa de marcados; se resetea al reusar)
+   Las plantillas de abajo son solo el punto de partida; al usarlas se copia
+   una versión editable al hogar. */
+const KITS_PLANTILLA = [
+  {
+    name: "Asado",
+    items: [
+      { cat: "Comida y bebida", label: "Carne y/o chorizos" },
+      { cat: "Comida y bebida", label: "Sal" },
+      { cat: "Comida y bebida", label: "Limones" },
+      { cat: "Comida y bebida", label: "Ají / salsas" },
+      { cat: "Comida y bebida", label: "Pan o arepas" },
+      { cat: "Comida y bebida", label: "Bebidas" },
+      { cat: "Comida y bebida", label: "Hielo" },
+      { cat: "Parrilla y utensilios", label: "Carbón" },
+      { cat: "Parrilla y utensilios", label: "Encendedor o fósforos" },
+      { cat: "Parrilla y utensilios", label: "Pinzas y cuchillo" },
+      { cat: "Parrilla y utensilios", label: "Tabla para picar" },
+      { cat: "Parrilla y utensilios", label: "Papel aluminio" },
+      { cat: "Parrilla y utensilios", label: "Destapador de botellas" },
+      { cat: "Parrilla y utensilios", label: "Platos, vasos y cubiertos" },
+      { cat: "Comodidad", label: "Sillas o manta" },
+      { cat: "Comodidad", label: "Música / parlante" },
+      { cat: "Comodidad", label: "Repelente de insectos" },
+      { cat: "Limpieza", label: "Bolsas de basura" },
+      { cat: "Limpieza", label: "Servilletas / toallas de papel" },
+      { cat: "Protección", label: "Protector solar" },
+      { cat: "Protección", label: "Sombra o carpa" },
+    ],
+  },
+  {
+    name: "Viaje",
+    items: [
+      { cat: "Documentos", label: "Pasaporte o cédula" },
+      { cat: "Documentos", label: "Pasabordo / tiquetes" },
+      { cat: "Documentos", label: "Reservas (hotel, transporte)" },
+      { cat: "Documentos", label: "Tarjetas y algo de efectivo" },
+      { cat: "Documentos", label: "Seguro de viaje" },
+      { cat: "Equipaje de mano", label: "Medicinas" },
+      { cat: "Equipaje de mano", label: "Cepillo y crema dental" },
+      { cat: "Equipaje de mano", label: "Muda de ropa" },
+      { cat: "Equipaje de mano", label: "Botella de agua vacía" },
+      { cat: "Equipaje de mano", label: "Snacks" },
+      { cat: "Electrónica", label: "Cargador del celular" },
+      { cat: "Electrónica", label: "Batería externa (power bank)" },
+      { cat: "Electrónica", label: "Adaptador de enchufe" },
+      { cat: "Electrónica", label: "Audífonos" },
+      { cat: "Antes de salir de casa", label: "Apagar luces y gas" },
+      { cat: "Antes de salir de casa", label: "Sacar la basura" },
+      { cat: "Antes de salir de casa", label: "Cerrar ventanas" },
+      { cat: "Antes de salir de casa", label: "Bajar la calefacción" },
+      { cat: "Antes de salir de casa", label: "Cargar el celular" },
+    ],
+  },
+  {
+    name: "Playa",
+    items: [
+      { cat: "Sol y protección", label: "Protector solar" },
+      { cat: "Sol y protección", label: "Gafas de sol" },
+      { cat: "Sol y protección", label: "Sombrero o gorra" },
+      { cat: "Sol y protección", label: "Sombrilla" },
+      { cat: "Comodidad", label: "Toallas" },
+      { cat: "Comodidad", label: "Manta" },
+      { cat: "Comodidad", label: "Muda de ropa seca" },
+      { cat: "Comodidad", label: "Vestido de baño extra" },
+      { cat: "Comida y bebida", label: "Agua" },
+      { cat: "Comida y bebida", label: "Hielo" },
+      { cat: "Comida y bebida", label: "Snacks" },
+      { cat: "No olvidar", label: "Bolsa impermeable para el celular" },
+      { cat: "No olvidar", label: "Toallitas húmedas" },
+      { cat: "No olvidar", label: "Bolsa para la basura" },
+      { cat: "No olvidar", label: "Repelente" },
+      { cat: "No olvidar", label: "Efectivo" },
+    ],
+  },
+  {
+    name: "Picnic",
+    items: [
+      { cat: "Comida y bebida", label: "Comida preparada" },
+      { cat: "Comida y bebida", label: "Bebidas" },
+      { cat: "Comida y bebida", label: "Hielo / nevera portátil" },
+      { cat: "Para comer", label: "Platos y vasos" },
+      { cat: "Para comer", label: "Cubiertos" },
+      { cat: "Para comer", label: "Servilletas" },
+      { cat: "Para comer", label: "Destapador y cuchillo" },
+      { cat: "Comodidad", label: "Manta de picnic" },
+      { cat: "Comodidad", label: "Cojines" },
+      { cat: "Comodidad", label: "Música / parlante" },
+      { cat: "No olvidar", label: "Bolsa para la basura" },
+      { cat: "No olvidar", label: "Toallitas húmedas" },
+      { cat: "No olvidar", label: "Repelente de insectos" },
+      { cat: "No olvidar", label: "Protector solar" },
+      { cat: "No olvidar", label: "Bolsa para lo sucio" },
+    ],
+  },
+];
+
+const nuevoId = () =>
+  (self.crypto?.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+
+function contarChecked(kit) {
+  const ids = new Set((kit.items || []).map((i) => i.id));
+  return Object.keys(kit.checked || {}).filter((id) => ids.has(id)).length;
+}
+
+// Agrupa los ítems por categoría, conservando el orden de primera aparición.
+function categoriasDe(kit) {
+  const orden = [];
+  const mapa = new Map();
+  for (const it of kit.items || []) {
+    const c = it.cat || "Otros";
+    if (!mapa.has(c)) { mapa.set(c, []); orden.push(c); }
+    mapa.get(c).push(it);
+  }
+  return orden.map((nombre) => ({ nombre, items: mapa.get(nombre) }));
+}
+
+function pintarKits() {
+  const kit = kits.find((k) => k.id === kitAbiertoId);
+  if (kit) {
+    $("#kits-lista").hidden = true;
+    $("#kit-detalle").hidden = false;
+    pintarDetalleKit(kit);
+  } else {
+    kitAbiertoId = null;
+    $("#kit-detalle").hidden = true;
+    $("#kits-lista").hidden = false;
+    pintarListaKits();
+  }
+}
+
+function pintarListaKits() {
+  const cont = $("#lista-kits");
+  const ordenados = [...kits].sort(
+    (a, b) => (a.order ?? aMilis(a.createdAt) ?? 0) - (b.order ?? aMilis(b.createdAt) ?? 0),
+  );
+  cont.replaceChildren(...ordenados.map(kitCard));
+  $("#kits-vacio").hidden = kits.length > 0;
+}
+
+function kitCard(kit) {
+  const total = (kit.items || []).length;
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "kit-card";
+  const cuerpo = document.createElement("div");
+  cuerpo.className = "kit-card-cuerpo";
+  const nom = document.createElement("div");
+  nom.className = "kit-card-nombre";
+  nom.textContent = kit.name;
+  const prog = document.createElement("div");
+  prog.className = "kit-card-prog";
+  prog.textContent = total ? `${contarChecked(kit)}/${total} listo` : "vacío";
+  cuerpo.append(nom, prog);
+  const chev = document.createElement("span");
+  chev.className = "kit-card-chevron";
+  chev.setAttribute("aria-hidden", "true");
+  card.append(cuerpo, chev);
+  card.addEventListener("click", () => abrirKit(kit.id));
+  return card;
+}
+
+function pintarDetalleKit(kit) {
+  const cont = $("#kit-detalle");
+  // Conservar el foco del input "Añadir" en edición (un cambio del otro
+  // teléfono dispara re-render mientras escribes).
+  const activo = document.activeElement;
+  const focoCat = activo?.classList?.contains("input-item") ? activo.dataset.cat : null;
+
+  cont.replaceChildren();
+  const total = (kit.items || []).length;
+  const hechos = contarChecked(kit);
+
+  const cab = document.createElement("div");
+  cab.className = "kit-detalle-cabecera";
+  const volver = document.createElement("button");
+  volver.type = "button";
+  volver.className = "kit-volver";
+  volver.textContent = "‹ Kits";
+  volver.addEventListener("click", cerrarKit);
+  const h = document.createElement("h2");
+  h.className = "kit-titulo";
+  h.textContent = kit.name;
+  const prog = document.createElement("div");
+  prog.className = "kit-progreso";
+  prog.textContent = total ? `${hechos} de ${total} listo` : "Aún sin ítems — agrega abajo";
+  cab.append(volver, h, prog);
+  if (total) {
+    const barra = document.createElement("div");
+    barra.className = "kit-barra";
+    const rel = document.createElement("div");
+    rel.className = "kit-barra-relleno";
+    rel.style.width = `${Math.round((hechos / total) * 100)}%`;
+    barra.append(rel);
+    cab.append(barra);
+  }
+  cont.append(cab);
+
+  for (const cat of categoriasDe(kit)) {
+    const grupo = document.createElement("div");
+    grupo.className = "grupo";
+    const lab = document.createElement("div");
+    lab.className = "grupo-label";
+    const etq = document.createElement("span");
+    etq.className = "etq";
+    etq.textContent = cat.nombre.toUpperCase();
+    const cnt = document.createElement("span");
+    cnt.className = "cuenta";
+    const catHechos = cat.items.filter((i) => kit.checked?.[i.id]).length;
+    cnt.textContent = `${catHechos}/${cat.items.length}`;
+    lab.append(etq, cnt);
+    const card = document.createElement("div");
+    card.className = "grupo-card";
+    const ul = document.createElement("ul");
+    ul.className = "lista-items";
+    for (const it of cat.items) ul.append(filaItemKit(kit, it));
+    card.append(ul, addRowKit(kit, cat.nombre));
+    grupo.append(lab, card);
+    cont.append(grupo);
+  }
+
+  const btnCat = document.createElement("button");
+  btnCat.type = "button";
+  btnCat.className = "fila-punteada";
+  btnCat.textContent = "＋ Nueva categoría";
+  btnCat.addEventListener("click", () => abrirDialogoItem(kit, null, ""));
+  cont.append(btnCat);
+
+  const acc = document.createElement("div");
+  acc.className = "kit-acciones";
+  const reset = document.createElement("button");
+  reset.className = "btn";
+  reset.type = "button";
+  reset.textContent = "Desmarcar todo";
+  reset.addEventListener("click", () => desmarcarKit(kit));
+  const del = document.createElement("button");
+  del.className = "btn btn-peligro";
+  del.type = "button";
+  del.textContent = "Eliminar kit";
+  del.addEventListener("click", () => eliminarKit(kit));
+  acc.append(reset, del);
+  cont.append(acc);
+
+  if (focoCat) {
+    const input = cont.querySelector(`.input-item[data-cat="${cssEscape(focoCat)}"]`);
+    if (input) input.focus();
+  }
+}
+
+function filaItemKit(kit, item) {
+  const li = document.createElement("li");
+  li.className = "item kit-item";
+  const label = document.createElement("label");
+  const chk = document.createElement("input");
+  chk.type = "checkbox";
+  chk.checked = !!kit.checked?.[item.id];
+  const span = document.createElement("span");
+  span.textContent = item.label;
+  label.append(chk, span);
+  chk.addEventListener("change", () => toggleItemKit(kit, item.id, chk.checked));
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "item-editar";
+  edit.setAttribute("aria-label", `Editar ${item.label}`);
+  edit.textContent = "✎";
+  edit.addEventListener("click", (ev) => { ev.stopPropagation(); abrirDialogoItem(kit, item.id, item.cat); });
+  li.append(label, edit);
+  return li;
+}
+
+function addRowKit(kit, catNombre) {
+  const form = document.createElement("form");
+  form.className = "add-row";
+  const plus = document.createElement("span");
+  plus.className = "add-plus";
+  plus.textContent = "+";
+  const input = document.createElement("input");
+  input.className = "input-item";
+  input.type = "text";
+  input.maxLength = 100;
+  input.autocomplete = "off";
+  input.placeholder = "Añadir";
+  input.dataset.cat = catNombre;
+  form.append(plus, input);
+  form.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const v = input.value.trim();
+    if (v) { agregarItemKit(kit, catNombre, v); input.value = ""; }
+  });
+  return form;
+}
+
+function abrirKit(id) { kitAbiertoId = id; pintarKits(); window.scrollTo(0, 0); }
+function cerrarKit() { kitAbiertoId = null; pintarKits(); }
+
+async function crearKitDesdePlantilla(plantilla) {
+  const items = plantilla.items.map((it) => ({ id: nuevoId(), label: it.label, cat: it.cat }));
+  try {
+    const ref = await addDoc(coleccionKits(), {
+      name: plantilla.name, items, checked: {}, order: kits.length, createdAt: serverTimestamp(),
+    });
+    $("#dialogo-kit-nuevo").close();
+    kitAbiertoId = ref.id;
+  } catch (err) {
+    console.error(err);
+    avisar("No se pudo crear. ¿Publicaste las reglas de Firestore?");
+  }
+}
+
+async function crearKitVacio(nombre) {
+  nombre = nombre.trim();
+  if (!nombre) return;
+  try {
+    const ref = await addDoc(coleccionKits(), {
+      name: nombre, items: [], checked: {}, order: kits.length, createdAt: serverTimestamp(),
+    });
+    $("#dialogo-kit-nuevo").close();
+    kitAbiertoId = ref.id;
+  } catch (err) {
+    console.error(err);
+    avisar("No se pudo crear. ¿Publicaste las reglas de Firestore?");
+  }
+}
+
+async function toggleItemKit(kit, itemId, checked) {
+  await updateDoc(doc(coleccionKits(), kit.id), {
+    [`checked.${itemId}`]: checked ? true : deleteField(),
+  });
+}
+
+async function agregarItemKit(kit, cat, label) {
+  await updateDoc(doc(coleccionKits(), kit.id), {
+    items: arrayUnion({ id: nuevoId(), label: label.slice(0, 100), cat: cat || "Otros" }),
+  });
+}
+
+function abrirDialogoItem(kit, itemId, catSugerida) {
+  itemKitEnEdicion = { kitId: kit.id, itemId: itemId || null };
+  const item = itemId ? (kit.items || []).find((i) => i.id === itemId) : null;
+  $("#titulo-kit-item").textContent = item ? "Editar ítem" : "Nuevo ítem";
+  $("#btn-eliminar-item").hidden = !item;
+  $("#kit-item-nombre").value = item?.label ?? "";
+  $("#kit-item-cat").value = item?.cat ?? catSugerida ?? "";
+  $("#kit-cats").replaceChildren(
+    ...categoriasDe(kit).map((c) => { const o = document.createElement("option"); o.value = c.nombre; return o; }),
+  );
+  $("#dialogo-kit-item").showModal();
+}
+
+async function guardarItemKit(ev) {
+  ev.preventDefault();
+  const kit = kits.find((k) => k.id === itemKitEnEdicion?.kitId);
+  if (!kit) return;
+  const label = $("#kit-item-nombre").value.trim();
+  const cat = $("#kit-item-cat").value.trim() || "Otros";
+  if (!label) return;
+  const ref = doc(coleccionKits(), kit.id);
+  if (itemKitEnEdicion.itemId) {
+    const items = (kit.items || []).map((i) =>
+      i.id === itemKitEnEdicion.itemId ? { ...i, label: label.slice(0, 100), cat } : i,
+    );
+    await updateDoc(ref, { items });
+  } else {
+    await updateDoc(ref, { items: arrayUnion({ id: nuevoId(), label: label.slice(0, 100), cat }) });
+  }
+  $("#dialogo-kit-item").close();
+}
+
+async function eliminarItemKitActual() {
+  const kit = kits.find((k) => k.id === itemKitEnEdicion?.kitId);
+  if (!kit || !itemKitEnEdicion.itemId) return;
+  const items = (kit.items || []).filter((i) => i.id !== itemKitEnEdicion.itemId);
+  await updateDoc(doc(coleccionKits(), kit.id), {
+    items,
+    [`checked.${itemKitEnEdicion.itemId}`]: deleteField(),
+  });
+  $("#dialogo-kit-item").close();
+}
+
+async function desmarcarKit(kit) {
+  if (!contarChecked(kit)) return;
+  await updateDoc(doc(coleccionKits(), kit.id), { checked: {} });
+  avisar(`«${kit.name}» quedó listo para la próxima.`);
+}
+
+async function eliminarKit(kit) {
+  if (!confirm(`¿Eliminar el kit «${kit.name}»?`)) return;
+  kitAbiertoId = null;
+  await deleteDoc(doc(coleccionKits(), kit.id));
+}
+
+function abrirDialogoNuevoKit() {
+  $("#plantillas-kit").replaceChildren(
+    ...KITS_PLANTILLA.map((p) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip-plantilla";
+      b.textContent = p.name;
+      b.addEventListener("click", () => crearKitDesdePlantilla(p));
+      return b;
+    }),
+  );
+  $("#kit-nombre").value = "";
+  $("#dialogo-kit-nuevo").showModal();
+}
+
 /* ── Notificaciones push (FCM) ── */
 async function activarNotificaciones() {
   const boton = $("#btn-notificaciones");
@@ -1018,6 +1444,18 @@ $("#btn-reordenar").addEventListener("click", () => {
   btn.textContent = activo ? "✓ Listo" : "⇅ Reordenar";
   btn.classList.toggle("activo", activo);
 });
+
+// Kits
+$("#tab-kits").addEventListener("click", () => mostrarVista("kits"));
+$("#btn-nuevo-kit").addEventListener("click", abrirDialogoNuevoKit);
+$("#btn-cancelar-kit").addEventListener("click", () => $("#dialogo-kit-nuevo").close());
+$("#form-kit-vacio").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  crearKitVacio($("#kit-nombre").value);
+});
+$("#form-kit-item").addEventListener("submit", guardarItemKit);
+$("#btn-cancelar-item").addEventListener("click", () => $("#dialogo-kit-item").close());
+$("#btn-eliminar-item").addEventListener("click", eliminarItemKitActual);
 $("#btn-notificaciones").addEventListener("click", activarNotificaciones);
 $("#btn-salir").addEventListener("click", () => {
   if (confirm("¿Salir del hogar en este teléfono? Las tareas siguen guardadas.")) {

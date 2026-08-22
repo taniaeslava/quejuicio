@@ -68,6 +68,14 @@ service cloud.firestore {
         && request.resource.data.storeOrder.size() <= 100;
     }
 
+    // Kits: listas para no olvidar nada (asado, viaje, playa…).
+    match /households/{code}/kits/{kitId} {
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80;
+    }
+
     // Todo lo demás (incluido el documento del hogar y cualquier
     // intento de leer/escribir fuera de estas rutas): denegado.
     match /{document=**} {

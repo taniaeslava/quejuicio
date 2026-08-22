@@ -97,6 +97,24 @@
         <button id="btn-reordenar" class="fila-tenue" type="button">⇅ Reordenar</button>
         <button id="btn-nueva-tienda" class="fila-punteada" type="button">＋ Agregar tienda</button>
       </div>
+
+      <!-- ── Vista: Kits ── -->
+      <div id="vista-kits" hidden>
+        <!-- lista de kits -->
+        <div id="kits-lista">
+          <div id="lista-kits" class="lista-tiendas"></div>
+          <div id="kits-vacio" class="estado-vacio" hidden>
+            <p class="estado-vacio-titulo">Aún no tienes kits</p>
+            <p class="nota nota-centrada">
+              Un kit es una lista para no olvidar nada al preparar algo: un asado,
+              un viaje, la playa… Empieza con una plantilla y ajústala a tu gusto.
+            </p>
+          </div>
+          <button id="btn-nuevo-kit" class="fila-punteada" type="button">＋ Nuevo kit</button>
+        </div>
+        <!-- detalle de un kit (se llena al abrir uno) -->
+        <div id="kit-detalle" hidden></div>
+      </div>
     </main>
 
     <button id="btn-nueva" class="fab" type="button" aria-label="Nueva tarea">＋</button>
@@ -114,6 +132,12 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h2l2.4 12.4a1 1 0 0 0 1 .8h8.6a1 1 0 0 0 1-.8L22 8H7"/><circle cx="10" cy="21" r="1"/><circle cx="18" cy="21" r="1"/></svg>
         </span>
         <span class="tab-texto">Compras</span>
+      </button>
+      <button id="tab-kits" class="tab" type="button">
+        <span class="tab-icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="4" width="8" height="3" rx="1"/><path d="M9 5.5H6a2 2 0 0 0-2 2V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5a2 2 0 0 0-2-2h-1"/><path d="m9 13 2 2 4-4"/></svg>
+        </span>
+        <span class="tab-texto">Kits</span>
       </button>
     </nav>
   </section>
@@ -163,6 +187,47 @@
         <span class="separador-flexible"></span>
         <button type="button" id="btn-cancelar-tienda" class="btn">Cancelar</button>
         <button type="submit" class="btn btn-primario">Crear</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── Diálogo: nuevo kit ──────────────────────────────── -->
+  <dialog id="dialogo-kit-nuevo">
+    <div class="dialogo-cuerpo">
+      <h2>Nuevo kit</h2>
+      <div class="tile-band tile-band-fina" aria-hidden="true"></div>
+      <h3>Empieza con una plantilla</h3>
+      <div id="plantillas-kit" class="chips-plantilla"></div>
+      <h3>O crea uno vacío</h3>
+      <form id="form-kit-vacio">
+        <input id="kit-nombre" type="text" maxlength="60" autocomplete="off"
+               placeholder="ej. Cumpleaños, oficina en casa" />
+        <div class="dialogo-acciones">
+          <span class="separador-flexible"></span>
+          <button type="button" id="btn-cancelar-kit" class="btn">Cancelar</button>
+          <button type="submit" class="btn btn-primario">Crear vacío</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- ── Diálogo: ítem de kit (agregar / editar) ─────────── -->
+  <dialog id="dialogo-kit-item">
+    <form id="form-kit-item" method="dialog">
+      <h2 id="titulo-kit-item">Editar ítem</h2>
+      <div class="tile-band tile-band-fina" aria-hidden="true"></div>
+      <label for="kit-item-nombre">¿Qué no hay que olvidar?</label>
+      <input id="kit-item-nombre" type="text" maxlength="100" required
+             placeholder="ej. Destapador, repelente…" autocomplete="off" />
+      <label for="kit-item-cat">Categoría</label>
+      <input id="kit-item-cat" type="text" maxlength="60" list="kit-cats"
+             placeholder="ej. Utensilios" autocomplete="off" />
+      <datalist id="kit-cats"></datalist>
+      <div class="dialogo-acciones">
+        <button type="button" id="btn-eliminar-item" class="btn btn-peligro" hidden>Eliminar</button>
+        <span class="separador-flexible"></span>
+        <button type="button" id="btn-cancelar-item" class="btn">Cancelar</button>
+        <button type="submit" class="btn btn-primario">Guardar</button>
       </div>
     </form>
   </dialog>

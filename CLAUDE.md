@@ -92,7 +92,15 @@ households/{codigo}/shopping/{id}   { name, store, order, createdAt }
 households/{codigo}/stores/{id}     { name, createdAt }
 households/{codigo}/pantry/{clave}  { name, store, lastBought }
 households/{codigo}/prefs/general   { storeOrder: [...] }
+households/{codigo}/kits/{id}       { name, order, createdAt, items:[{id,label,cat}], checked:{itemId:true} }
 ```
+
+Kits = listas reutilizables para no olvidar nada (asado, viaje, playa, picnic…).
+Los ítems se agrupan por `cat` (categoría); lo marcado vive en el mapa `checked`
+(se actualiza con field-path `checked.<itemId>` para no reescribir el array y
+evitar choques entre los dos teléfonos); "Desmarcar todo" hace `checked: {}`.
+Las plantillas viven en `KITS_PLANTILLA` (app.js); al usarlas se copia un kit
+editable al hogar.
 
 `{codigo}` es el código de hogar (secreto compartido; **no lo escribas en
 ningún archivo del repo**, que es público — solo se teclea en cada teléfono).
@@ -116,20 +124,20 @@ de bordes. Todos los tokens están en `:root` — úsalos, no inventes colores.
 - Las asas de arrastre (⠿) van ocultas salvo en "modo reordenar"
   (`#vista-compras.reordenando`, lo activa `#btn-reordenar`).
 
-## RECETA: agregar una tercera pestaña (p. ej. "Notas")
+## RECETA: agregar otra pestaña/sección (p. ej. "Notas")
 
-La lista de compras es el mejor molde a copiar. Pasos:
+Ya hay tres: **Tareas, Compras y Kits**. Compras (accordions) y Kits (lista +
+detalle) son los mejores moldes a copiar. Pasos:
 
 1. **HTML** ([index.html](index.html)):
    - Dentro de `<main>`, agrega `<div id="vista-notas" hidden>…</div>` junto a
-     `#vista-tareas` y `#vista-compras`.
+     las otras vistas.
    - En `<nav id="barra-pestanas">`, agrega un botón `<button id="tab-notas" …>`
-     como los otros dos.
+     como los demás.
 
 2. **Cambio de pestaña** ([app.js](app.js), función `mostrarVista`):
-   - Esa función hoy asume dos vistas. Generalízala: oculta TODAS las vistas y
-     muestra solo la elegida; quita `.activa` de todas las pestañas y pónsela a
-     la elegida. Recuerda: el FAB `#btn-nueva` es solo de Tareas (`$("#btn-nueva").hidden`).
+   - Ya está generalizada: agrega `"notas"` al array `vistas` y listo (recuerda
+     que el FAB `#btn-nueva` es solo de Tareas).
    - Agrega el listener: `$("#tab-notas").addEventListener("click", () => mostrarVista("notas"));`
 
 3. **Datos** (si la pestaña guarda cosas en Firestore):
