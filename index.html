@@ -198,6 +198,10 @@
       <div class="tile-band tile-band-fina" aria-hidden="true"></div>
       <h3>Empieza con una plantilla</h3>
       <div id="plantillas-kit" class="chips-plantilla"></div>
+      <div id="mis-kits-seccion" hidden>
+        <h3>O parte de uno tuyo (copia tu versión)</h3>
+        <div id="mis-kits-chips" class="chips-plantilla"></div>
+      </div>
       <h3>O crea uno vacío</h3>
       <form id="form-kit-vacio">
         <input id="kit-nombre" type="text" maxlength="60" autocomplete="off"
@@ -227,6 +231,21 @@
         <button type="button" id="btn-eliminar-item" class="btn btn-peligro" hidden>Eliminar</button>
         <span class="separador-flexible"></span>
         <button type="button" id="btn-cancelar-item" class="btn">Cancelar</button>
+        <button type="submit" class="btn btn-primario">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── Diálogo: renombrar kit ──────────────────────────── -->
+  <dialog id="dialogo-kit-renombrar">
+    <form id="form-kit-renombrar" method="dialog">
+      <h2>Renombrar kit</h2>
+      <div class="tile-band tile-band-fina" aria-hidden="true"></div>
+      <label for="kit-nuevo-nombre">Nombre del kit</label>
+      <input id="kit-nuevo-nombre" type="text" maxlength="80" required autocomplete="off" />
+      <div class="dialogo-acciones">
+        <span class="separador-flexible"></span>
+        <button type="button" id="btn-cancelar-renombrar" class="btn">Cancelar</button>
         <button type="submit" class="btn btn-primario">Guardar</button>
       </div>
     </form>

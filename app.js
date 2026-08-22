@@ -41,6 +41,7 @@ let kits = [];            // { id, name, order, items:[{id,label,cat}], checked:
 let desuscribirKits = null;
 let kitAbiertoId = null;  // id del kit cuyo detalle se está viendo (null = lista)
 let itemKitEnEdicion = null; // { itemId } al editar; null al agregar
+let kitRenombrarId = null;   // kit que se está renombrando
 const TIENDAS_DEFECTO = ["Edeka", "Ikea", "Amazon", "Tedi"];
 const tiendasAbiertas = new Set(
   JSON.parse(localStorage.getItem("queJuicio.tiendasAbiertas") || "[]"),
@@ -1152,17 +1153,20 @@ function pintarDetalleKit(kit) {
 
   const acc = document.createElement("div");
   acc.className = "kit-acciones";
-  const reset = document.createElement("button");
-  reset.className = "btn";
-  reset.type = "button";
-  reset.textContent = "Desmarcar todo";
-  reset.addEventListener("click", () => desmarcarKit(kit));
-  const del = document.createElement("button");
-  del.className = "btn btn-peligro";
-  del.type = "button";
-  del.textContent = "Eliminar kit";
-  del.addEventListener("click", () => eliminarKit(kit));
-  acc.append(reset, del);
+  const mkBtn = (txt, cls, fn) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = cls;
+    b.textContent = txt;
+    b.addEventListener("click", fn);
+    return b;
+  };
+  acc.append(
+    mkBtn("Renombrar", "btn", () => abrirDialogoRenombrar(kit)),
+    mkBtn("Duplicar", "btn", () => duplicarKit(kit)),
+    mkBtn("Desmarcar todo", "btn", () => desmarcarKit(kit)),
+    mkBtn("Eliminar kit", "btn btn-peligro", () => eliminarKit(kit)),
+  );
   cont.append(acc);
 
   if (focoCat) {
@@ -1313,6 +1317,36 @@ async function eliminarKit(kit) {
   await deleteDoc(doc(coleccionKits(), kit.id));
 }
 
+// Duplicar un kit: copia sus ítems (personalizados) en uno nuevo, sin marcar.
+// Así tu versión ajustada sirve de plantilla para el próximo.
+async function duplicarKit(kit) {
+  const items = (kit.items || []).map((it) => ({ ...it }));
+  try {
+    const ref = await addDoc(coleccionKits(), {
+      name: `${kit.name} (copia)`, items, checked: {}, order: kits.length, createdAt: serverTimestamp(),
+    });
+    $("#dialogo-kit-nuevo").close();
+    kitAbiertoId = ref.id;
+  } catch (err) {
+    console.error(err);
+    avisar("No se pudo duplicar.");
+  }
+}
+
+function abrirDialogoRenombrar(kit) {
+  kitRenombrarId = kit.id;
+  $("#kit-nuevo-nombre").value = kit.name;
+  $("#dialogo-kit-renombrar").showModal();
+}
+
+async function renombrarKit() {
+  const kit = kits.find((k) => k.id === kitRenombrarId);
+  const nombre = $("#kit-nuevo-nombre").value.trim();
+  if (!kit || !nombre) return;
+  await updateDoc(doc(coleccionKits(), kit.id), { name: nombre.slice(0, 80) });
+  $("#dialogo-kit-renombrar").close();
+}
+
 function abrirDialogoNuevoKit() {
   $("#plantillas-kit").replaceChildren(
     ...KITS_PLANTILLA.map((p) => {
@@ -1321,6 +1355,19 @@ function abrirDialogoNuevoKit() {
       b.className = "chip-plantilla";
       b.textContent = p.name;
       b.addEventListener("click", () => crearKitDesdePlantilla(p));
+      return b;
+    }),
+  );
+  // Tus propios kits, para partir de una copia de tu versión personalizada.
+  const mios = [...kits].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  $("#mis-kits-seccion").hidden = mios.length === 0;
+  $("#mis-kits-chips").replaceChildren(
+    ...mios.map((k) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip-plantilla";
+      b.textContent = k.name;
+      b.addEventListener("click", () => duplicarKit(k));
       return b;
     }),
   );
@@ -1456,6 +1503,8 @@ $("#form-kit-vacio").addEventListener("submit", (ev) => {
 $("#form-kit-item").addEventListener("submit", guardarItemKit);
 $("#btn-cancelar-item").addEventListener("click", () => $("#dialogo-kit-item").close());
 $("#btn-eliminar-item").addEventListener("click", eliminarItemKitActual);
+$("#form-kit-renombrar").addEventListener("submit", (ev) => { ev.preventDefault(); renombrarKit(); });
+$("#btn-cancelar-renombrar").addEventListener("click", () => $("#dialogo-kit-renombrar").close());
 $("#btn-notificaciones").addEventListener("click", activarNotificaciones);
 $("#btn-salir").addEventListener("click", () => {
   if (confirm("¿Salir del hogar en este teléfono? Las tareas siguen guardadas.")) {

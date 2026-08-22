@@ -470,8 +470,8 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
 }
 .kit-item input[type="checkbox"]:checked + span { color: var(--muted); text-decoration: line-through; }
 
-.kit-acciones { display: flex; gap: 0.6rem; margin-top: 20px; }
-.kit-acciones .btn { flex: 1; }
+.kit-acciones { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 20px; }
+.kit-acciones .btn { flex: 1 1 42%; }
 
 /* chips de plantilla en el diálogo de nuevo kit */
 .chips-plantilla { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.4rem; }
