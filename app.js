@@ -31,6 +31,7 @@ let desuscribirCompras = null;
 let desuscribirTiendas = null;
 let desuscribirDespensa = null;
 let ultimoBorrado = null; // para "Deshacer" al marcar comprado
+let editandoItemId = null; // artículo cuyo nombre se está reescribiendo
 let arrastrando = false;  // true mientras se reordena algo (pausa el re-render)
 let arrastrandoDesde = 0; // momento en que empezó; sirve de red de seguridad
 let ordenTiendas = [];    // orden manual de las tiendas (se guarda en prefs/general)
@@ -41,7 +42,17 @@ let kits = [];            // { id, name, order, items:[{id,label,cat}], checked:
 let desuscribirKits = null;
 let kitAbiertoId = null;  // id del kit cuyo detalle se está viendo (null = lista)
 let itemKitEnEdicion = null; // { itemId } al editar; null al agregar
-let kitRenombrarId = null;   // kit que se está renombrando
+let kitRenombrarId = null;   // kit o plantilla que se está renombrando
+let creandoKit = false;      // evita crear dos kits por doble toque
+
+// ── Plantillas de kits (editables; viven en Firestore, no en el código) ──
+let plantillas = [];            // { id, name, order, items:[{id,label,cat}] }
+let desuscribirPlantillas = null;
+let plantillaAbiertaId = null;  // plantilla que se está editando (null = ninguna)
+let viendoPlantillas = false;   // true = pantalla con la lista de plantillas
+let snapPrefsLista = false;     // ¿ya llegó el primer snapshot de prefs?
+let snapPlantillasLista = false;// ¿ya llegó el primer snapshot de plantillas?
+let plantillasSembradas = false;// bandera guardada en prefs/general
 const TIENDAS_DEFECTO = ["Edeka", "Ikea", "Amazon", "Tedi"];
 const tiendasAbiertas = new Set(
   JSON.parse(localStorage.getItem("queJuicio.tiendasAbiertas") || "[]"),
@@ -79,6 +90,11 @@ const coleccionTiendas = () => collection(db, "households", codigoHogar, "stores
 const coleccionDespensa = () => collection(db, "households", codigoHogar, "pantry");
 const docPrefs = () => doc(db, "households", codigoHogar, "prefs", "general");
 const coleccionKits = () => collection(db, "households", codigoHogar, "kits");
+const coleccionPlantillas = () => collection(db, "households", codigoHogar, "plantillas");
+
+// Un kit y una plantilla tienen la misma forma; solo cambia dónde viven.
+const buscarKit = (id) => kits.find((k) => k.id === id) || plantillas.find((p) => p.id === id);
+const refDe = (kit) => doc(kit.esPlantilla ? coleccionPlantillas() : coleccionKits(), kit.id);
 
 function entrarAlHogar(codigo) {
   codigoHogar = codigo;
@@ -117,6 +133,9 @@ function entrarAlHogar(codigo) {
   desuscribirPrefs?.();
   desuscribirPrefs = onSnapshot(docPrefs(), (snap) => {
     ordenTiendas = snap.data()?.storeOrder || [];
+    plantillasSembradas = snap.data()?.plantillasSembradas === true;
+    snapPrefsLista = true;
+    quizasSembrarPlantillas();
     pintarCompras();
   }, errorCompras);
   desuscribirKits?.();
@@ -124,6 +143,16 @@ function entrarAlHogar(codigo) {
     kits = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     pintarKits();
   }, errorCompras);
+  desuscribirPlantillas?.();
+  desuscribirPlantillas = onSnapshot(coleccionPlantillas(), (snap) => {
+    plantillas = snap.docs.map((d) => ({ id: d.id, ...d.data(), esPlantilla: true }));
+    snapPlantillasLista = true;
+    quizasSembrarPlantillas();
+    pintarKits();
+  }, (err) => {
+    // Lo más probable: falta publicar la regla de 'plantillas' en Firestore.
+    console.error("plantillas:", err);
+  });
 
   // Pintar ya el estado inicial, sin esperar a Firestore.
   pintarCompras();
@@ -138,7 +167,8 @@ function salirDelHogar() {
   desuscribirDespensa?.();
   desuscribirPrefs?.();
   desuscribirKits?.();
-  desuscribir = desuscribirCompras = desuscribirTiendas = desuscribirDespensa = desuscribirPrefs = desuscribirKits = null;
+  desuscribirPlantillas?.();
+  desuscribir = desuscribirCompras = desuscribirTiendas = desuscribirDespensa = desuscribirPrefs = desuscribirKits = desuscribirPlantillas = null;
   localStorage.removeItem("queJuicio.hogar");
   codigoHogar = "";
   tareas = [];
@@ -148,6 +178,10 @@ function salirDelHogar() {
   ordenTiendas = [];
   kits = [];
   kitAbiertoId = null;
+  plantillas = [];
+  plantillaAbiertaId = null;
+  viendoPlantillas = false;
+  snapPrefsLista = snapPlantillasLista = plantillasSembradas = false;
   mostrarVista("tareas");
   $("#dialogo-ajustes").close();
   $("#pantalla-principal").hidden = true;
@@ -428,6 +462,8 @@ function pintarCompras() {
   // estado "arrastrando" quedó pegado por un gesto que no cerró bien, se libera
   // solo tras 4 s para que la lista nunca quede bloqueada.
   if (arrastrando && Date.now() - arrastrandoDesde < 4000) return;
+  // Tampoco mientras se está reescribiendo el nombre de un artículo.
+  if (editandoItemId && $(".item-edit")) return;
   arrastrando = false;
   const cont = $("#lista-tiendas");
   // Un cambio del otro teléfono dispara un re-render; guardamos el input en
@@ -469,7 +505,7 @@ function tarjetaTienda(nombre, items) {
   sec.className = "tienda" + (abierta ? " abierta" : "") + (vacia && !abierta ? " vacia" : "");
   sec.dataset.store = nombre;
 
-  // Encabezado: asa (oculta salvo modo reordenar) · chevron · nombre · conteo.
+  // Encabezado: asa de arrastre · chevron · nombre · conteo.
   const header = document.createElement("button");
   header.type = "button";
   header.className = "tienda-header";
@@ -579,17 +615,63 @@ function filaItem(item) {
   grip.setAttribute("aria-hidden", "true");
   grip.textContent = "⠿";
 
+  // La casilla va SOLA dentro del <label>: así tocar el texto no la marca.
   const label = document.createElement("label");
+  label.className = "item-check";
   const chk = document.createElement("input");
   chk.type = "checkbox";
-  const txt = document.createElement("span");
-  txt.textContent = item.name;
-  label.append(chk, txt);
+  label.append(chk);
   chk.addEventListener("change", () => { if (chk.checked) comprarItem(item); });
 
-  li.append(grip, label);
+  // Tocar el texto = corregir el nombre ahí mismo (no lo borra).
+  const txt = document.createElement("span");
+  txt.className = "item-texto";
+  txt.textContent = item.name;
+  txt.addEventListener("click", () => editarItemInline(txt, item));
+
+  li.append(grip, label, txt);
   habilitarSwipe(li, item);
   return li;
+}
+
+/* Editar el nombre de un artículo tocándolo (como en Google Keep).
+   Mientras hay un input abierto, pintarCompras() se abstiene de re-dibujar
+   para que un cambio del otro teléfono no te quite el texto de las manos. */
+function editarItemInline(txt, item) {
+  if (editandoItemId) return;
+  editandoItemId = item.id;
+
+  const input = document.createElement("input");
+  input.className = "item-edit";
+  input.type = "text";
+  input.maxLength = 100;
+  input.value = item.name;
+  txt.replaceWith(input);
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+
+  let cerrado = false;
+  const terminar = async (guardar) => {
+    if (cerrado) return;
+    cerrado = true;
+    const nuevo = input.value.trim().slice(0, 100);
+    editandoItemId = null;
+    if (guardar && nuevo && nuevo !== item.name) {
+      try {
+        await updateDoc(doc(coleccionCompras(), item.id), { name: nuevo });
+      } catch (err) {
+        console.error(err);
+        avisar("No se pudo cambiar el nombre.");
+      }
+    }
+    pintarCompras();
+  };
+
+  input.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") { ev.preventDefault(); terminar(true); }
+    if (ev.key === "Escape") { ev.preventDefault(); terminar(false); }
+  });
+  input.addEventListener("blur", () => terminar(true));
 }
 
 // Swipe a la derecha para ELIMINAR del todo (sin guardar en la despensa).
@@ -600,6 +682,7 @@ function habilitarSwipe(li, item) {
 
   li.addEventListener("pointerdown", (e) => {
     if (e.target.closest(".item-grip")) return; // el asa es para reordenar
+    if (e.target.closest(".item-edit")) return; // no deslizar mientras se edita
     x0 = e.clientX; y0 = e.clientY; eje = null; dx = 0; activo = true;
     li.style.transition = "none";
   });
@@ -924,8 +1007,9 @@ async function eliminarTienda(nombre, items) {
    Cada kit vive en households/{code}/kits/{id} con:
      items:   [{ id, label, cat }]     (cat = categoría)
      checked: { [itemId]: true }       (mapa de marcados; se resetea al reusar)
-   Las plantillas de abajo son solo el punto de partida; al usarlas se copia
-   una versión editable al hogar. */
+   Las plantillas viven en households/{code}/plantillas/{id} (misma forma, sin
+   'checked') y son EDITABLES. KITS_PLANTILLA es solo la semilla de fábrica:
+   se copia a Firestore la primera vez y después ya no se vuelve a mirar. */
 const KITS_PLANTILLA = [
   {
     name: "Asado",
@@ -1023,6 +1107,31 @@ const KITS_PLANTILLA = [
 const nuevoId = () =>
   (self.crypto?.randomUUID?.() || Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
 
+/* La primera vez que se entra a un hogar se copian las plantillas de fábrica
+   a Firestore (con ids fijos, para que los dos teléfonos no creen duplicados).
+   De ahí en adelante son de la casa: se pueden editar y los cambios quedan.
+   La bandera en prefs evita que reaparezcan solas si se borran a propósito. */
+async function quizasSembrarPlantillas() {
+  if (!snapPrefsLista || !snapPlantillasLista) return;
+  if (plantillasSembradas || plantillas.length) return;
+  plantillasSembradas = true; // no reintentar en esta sesión
+  try {
+    await Promise.all(
+      KITS_PLANTILLA.map((p, i) =>
+        setDoc(doc(coleccionPlantillas(), p.name.toLowerCase()), {
+          name: p.name,
+          items: p.items.map((it) => ({ id: nuevoId(), label: it.label, cat: it.cat })),
+          order: i,
+          createdAt: serverTimestamp(),
+        }),
+      ),
+    );
+    await setDoc(docPrefs(), { plantillasSembradas: true }, { merge: true });
+  } catch (err) {
+    console.error("plantillas:", err);
+  }
+}
+
 function contarChecked(kit) {
   const ids = new Set((kit.items || []).map((i) => i.id));
   return Object.keys(kit.checked || {}).filter((id) => ids.has(id)).length;
@@ -1040,18 +1149,108 @@ function categoriasDe(kit) {
   return orden.map((nombre) => ({ nombre, items: mapa.get(nombre) }));
 }
 
+/* La pestaña Kits tiene cuatro pantallas: lista de kits, detalle de un kit,
+   lista de plantillas y detalle de una plantilla. */
 function pintarKits() {
+  const mostrar = (cual) => {
+    $("#kits-lista").hidden = cual !== "kits";
+    $("#plantillas-lista").hidden = cual !== "plantillas";
+    $("#kit-detalle").hidden = cual !== "detalle";
+  };
+
+  const plantilla = plantillas.find((p) => p.id === plantillaAbiertaId);
+  if (plantilla) {
+    mostrar("detalle");
+    pintarDetalleKit(plantilla);
+    return;
+  }
+  plantillaAbiertaId = null;
+
+  if (viendoPlantillas) {
+    mostrar("plantillas");
+    pintarListaPlantillas();
+    return;
+  }
+
   const kit = kits.find((k) => k.id === kitAbiertoId);
   if (kit) {
-    $("#kits-lista").hidden = true;
-    $("#kit-detalle").hidden = false;
+    mostrar("detalle");
     pintarDetalleKit(kit);
   } else {
     kitAbiertoId = null;
-    $("#kit-detalle").hidden = true;
-    $("#kits-lista").hidden = false;
+    mostrar("kits");
     pintarListaKits();
   }
+}
+
+function abrirPlantillas() {
+  viendoPlantillas = true;
+  kitAbiertoId = null;
+  pintarKits();
+  window.scrollTo(0, 0);
+}
+function cerrarPlantillas() { viendoPlantillas = false; plantillaAbiertaId = null; pintarKits(); }
+function cerrarPlantilla() { plantillaAbiertaId = null; pintarKits(); }
+
+function pintarListaPlantillas() {
+  const cont = $("#plantillas-lista");
+  cont.replaceChildren();
+
+  const cab = document.createElement("div");
+  cab.className = "kit-detalle-cabecera";
+  const volver = document.createElement("button");
+  volver.type = "button";
+  volver.className = "kit-volver";
+  volver.textContent = "‹ Kits";
+  volver.addEventListener("click", cerrarPlantillas);
+  const h = document.createElement("h2");
+  h.className = "kit-titulo";
+  h.textContent = "Plantillas";
+  const nota = document.createElement("div");
+  nota.className = "kit-progreso";
+  nota.textContent = "Lo que cambies aquí saldrá así cada vez que uses la plantilla.";
+  cab.append(volver, h, nota);
+  cont.append(cab);
+
+  const ordenadas = [...plantillas].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  if (ordenadas.length) {
+    const lista = document.createElement("div");
+    lista.className = "lista-tiendas";
+    lista.append(...ordenadas.map(plantillaCard));
+    cont.append(lista);
+  } else {
+    const p = document.createElement("p");
+    p.className = "nota nota-centrada";
+    p.textContent =
+      "No tienes plantillas. Abre un kit y usa «Guardar como plantilla» para crear una.";
+    cont.append(p);
+  }
+}
+
+function plantillaCard(plantilla) {
+  const total = (plantilla.items || []).length;
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "kit-card";
+  const cuerpo = document.createElement("div");
+  cuerpo.className = "kit-card-cuerpo";
+  const nom = document.createElement("div");
+  nom.className = "kit-card-nombre";
+  nom.textContent = plantilla.name;
+  const sub = document.createElement("div");
+  sub.className = "kit-card-prog";
+  sub.textContent = total === 1 ? "1 ítem" : `${total} ítems`;
+  cuerpo.append(nom, sub);
+  const chev = document.createElement("span");
+  chev.className = "kit-card-chevron";
+  chev.setAttribute("aria-hidden", "true");
+  card.append(cuerpo, chev);
+  card.addEventListener("click", () => {
+    plantillaAbiertaId = plantilla.id;
+    pintarKits();
+    window.scrollTo(0, 0);
+  });
+  return card;
 }
 
 function pintarListaKits() {
@@ -1086,6 +1285,7 @@ function kitCard(kit) {
 }
 
 function pintarDetalleKit(kit) {
+  const esP = !!kit.esPlantilla; // una plantilla no se marca, solo se edita
   const cont = $("#kit-detalle");
   // Conservar el foco del input "Añadir" en edición (un cambio del otro
   // teléfono dispara re-render mientras escribes).
@@ -1101,16 +1301,18 @@ function pintarDetalleKit(kit) {
   const volver = document.createElement("button");
   volver.type = "button";
   volver.className = "kit-volver";
-  volver.textContent = "‹ Kits";
-  volver.addEventListener("click", cerrarKit);
+  volver.textContent = esP ? "‹ Plantillas" : "‹ Kits";
+  volver.addEventListener("click", esP ? cerrarPlantilla : cerrarKit);
   const h = document.createElement("h2");
   h.className = "kit-titulo";
   h.textContent = kit.name;
   const prog = document.createElement("div");
   prog.className = "kit-progreso";
-  prog.textContent = total ? `${hechos} de ${total} listo` : "Aún sin ítems — agrega abajo";
+  if (!total) prog.textContent = "Aún sin ítems — agrega abajo";
+  else if (esP) prog.textContent = "Lo que cambies aquí saldrá así cada vez que la uses.";
+  else prog.textContent = `${hechos} de ${total} listo`;
   cab.append(volver, h, prog);
-  if (total) {
+  if (total && !esP) {
     const barra = document.createElement("div");
     barra.className = "kit-barra";
     const rel = document.createElement("div");
@@ -1161,12 +1363,21 @@ function pintarDetalleKit(kit) {
     b.addEventListener("click", fn);
     return b;
   };
-  acc.append(
-    mkBtn("Renombrar", "btn", () => abrirDialogoRenombrar(kit)),
-    mkBtn("Duplicar", "btn", () => duplicarKit(kit)),
-    mkBtn("Desmarcar todo", "btn", () => desmarcarKit(kit)),
-    mkBtn("Eliminar kit", "btn btn-peligro", () => eliminarKit(kit)),
-  );
+  if (esP) {
+    acc.append(
+      mkBtn("Usar esta plantilla", "btn btn-primario", () => crearKitDesdePlantilla(kit)),
+      mkBtn("Renombrar", "btn", () => abrirDialogoRenombrar(kit)),
+      mkBtn("Eliminar plantilla", "btn btn-peligro", () => eliminarKit(kit)),
+    );
+  } else {
+    acc.append(
+      mkBtn("Renombrar", "btn", () => abrirDialogoRenombrar(kit)),
+      mkBtn("Duplicar", "btn", () => duplicarKit(kit)),
+      mkBtn("Guardar como plantilla", "btn", () => guardarComoPlantilla(kit)),
+      mkBtn("Desmarcar todo", "btn", () => desmarcarKit(kit)),
+      mkBtn("Eliminar kit", "btn btn-peligro", () => eliminarKit(kit)),
+    );
+  }
   cont.append(acc);
 
   if (focoCat) {
@@ -1179,13 +1390,21 @@ function filaItemKit(kit, item) {
   const li = document.createElement("li");
   li.className = "item kit-item";
   const label = document.createElement("label");
-  const chk = document.createElement("input");
-  chk.type = "checkbox";
-  chk.checked = !!kit.checked?.[item.id];
   const span = document.createElement("span");
   span.textContent = item.label;
-  label.append(chk, span);
-  chk.addEventListener("change", () => toggleItemKit(kit, item.id, chk.checked));
+  if (kit.esPlantilla) {
+    // En una plantilla no hay nada que marcar: un punto guarda la alineación.
+    const punto = document.createElement("span");
+    punto.className = "item-punto";
+    punto.setAttribute("aria-hidden", "true");
+    label.append(punto, span);
+  } else {
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.checked = !!kit.checked?.[item.id];
+    label.append(chk, span);
+    chk.addEventListener("change", () => toggleItemKit(kit, item.id, chk.checked));
+  }
   const edit = document.createElement("button");
   edit.type = "button";
   edit.className = "item-editar";
@@ -1221,32 +1440,50 @@ function addRowKit(kit, catNombre) {
 function abrirKit(id) { kitAbiertoId = id; pintarKits(); window.scrollTo(0, 0); }
 function cerrarKit() { kitAbiertoId = null; pintarKits(); }
 
+/* Deja abierto el kit recién creado. Ojo: hay que repintar de una, porque el
+   snapshot que trae el kit nuevo llega ANTES de que se sepa su id — si no se
+   repinta, la pantalla se queda igualita y parece que el botón no hizo nada. */
+function abrirKitNuevo(id) {
+  $("#dialogo-kit-nuevo").close();
+  viendoPlantillas = false;
+  plantillaAbiertaId = null;
+  kitAbiertoId = id;
+  pintarKits();
+  window.scrollTo(0, 0);
+}
+
 async function crearKitDesdePlantilla(plantilla) {
-  const items = plantilla.items.map((it) => ({ id: nuevoId(), label: it.label, cat: it.cat }));
+  if (creandoKit) return;
+  creandoKit = true;
+  const items = (plantilla.items || []).map((it) => ({ id: nuevoId(), label: it.label, cat: it.cat }));
   try {
     const ref = await addDoc(coleccionKits(), {
       name: plantilla.name, items, checked: {}, order: kits.length, createdAt: serverTimestamp(),
     });
-    $("#dialogo-kit-nuevo").close();
-    kitAbiertoId = ref.id;
+    abrirKitNuevo(ref.id);
+    avisar(`Kit «${plantilla.name}» creado ✓`);
   } catch (err) {
     console.error(err);
     avisar("No se pudo crear. ¿Publicaste las reglas de Firestore?");
+  } finally {
+    creandoKit = false;
   }
 }
 
 async function crearKitVacio(nombre) {
   nombre = nombre.trim();
-  if (!nombre) return;
+  if (!nombre || creandoKit) return;
+  creandoKit = true;
   try {
     const ref = await addDoc(coleccionKits(), {
       name: nombre, items: [], checked: {}, order: kits.length, createdAt: serverTimestamp(),
     });
-    $("#dialogo-kit-nuevo").close();
-    kitAbiertoId = ref.id;
+    abrirKitNuevo(ref.id);
   } catch (err) {
     console.error(err);
     avisar("No se pudo crear. ¿Publicaste las reglas de Firestore?");
+  } finally {
+    creandoKit = false;
   }
 }
 
@@ -1257,13 +1494,14 @@ async function toggleItemKit(kit, itemId, checked) {
 }
 
 async function agregarItemKit(kit, cat, label) {
-  await updateDoc(doc(coleccionKits(), kit.id), {
+  await updateDoc(refDe(kit), {
     items: arrayUnion({ id: nuevoId(), label: label.slice(0, 100), cat: cat || "Otros" }),
   });
 }
 
 function abrirDialogoItem(kit, itemId, catSugerida) {
   itemKitEnEdicion = { kitId: kit.id, itemId: itemId || null };
+  $("#titulo-kit-item").dataset.plantilla = kit.esPlantilla ? "1" : "";
   const item = itemId ? (kit.items || []).find((i) => i.id === itemId) : null;
   $("#titulo-kit-item").textContent = item ? "Editar ítem" : "Nuevo ítem";
   $("#btn-eliminar-item").hidden = !item;
@@ -1277,12 +1515,12 @@ function abrirDialogoItem(kit, itemId, catSugerida) {
 
 async function guardarItemKit(ev) {
   ev.preventDefault();
-  const kit = kits.find((k) => k.id === itemKitEnEdicion?.kitId);
+  const kit = buscarKit(itemKitEnEdicion?.kitId);
   if (!kit) return;
   const label = $("#kit-item-nombre").value.trim();
   const cat = $("#kit-item-cat").value.trim() || "Otros";
   if (!label) return;
-  const ref = doc(coleccionKits(), kit.id);
+  const ref = refDe(kit);
   if (itemKitEnEdicion.itemId) {
     const items = (kit.items || []).map((i) =>
       i.id === itemKitEnEdicion.itemId ? { ...i, label: label.slice(0, 100), cat } : i,
@@ -1295,13 +1533,13 @@ async function guardarItemKit(ev) {
 }
 
 async function eliminarItemKitActual() {
-  const kit = kits.find((k) => k.id === itemKitEnEdicion?.kitId);
+  const kit = buscarKit(itemKitEnEdicion?.kitId);
   if (!kit || !itemKitEnEdicion.itemId) return;
   const items = (kit.items || []).filter((i) => i.id !== itemKitEnEdicion.itemId);
-  await updateDoc(doc(coleccionKits(), kit.id), {
-    items,
-    [`checked.${itemKitEnEdicion.itemId}`]: deleteField(),
-  });
+  const cambios = { items };
+  // Las plantillas no tienen mapa de marcados.
+  if (!kit.esPlantilla) cambios[`checked.${itemKitEnEdicion.itemId}`] = deleteField();
+  await updateDoc(refDe(kit), cambios);
   $("#dialogo-kit-item").close();
 }
 
@@ -1312,44 +1550,82 @@ async function desmarcarKit(kit) {
 }
 
 async function eliminarKit(kit) {
-  if (!confirm(`¿Eliminar el kit «${kit.name}»?`)) return;
-  kitAbiertoId = null;
-  await deleteDoc(doc(coleccionKits(), kit.id));
+  const que = kit.esPlantilla ? "la plantilla" : "el kit";
+  if (!confirm(`¿Eliminar ${que} «${kit.name}»?`)) return;
+  if (kit.esPlantilla) plantillaAbiertaId = null;
+  else kitAbiertoId = null;
+  await deleteDoc(refDe(kit));
+  pintarKits();
 }
 
 // Duplicar un kit: copia sus ítems (personalizados) en uno nuevo, sin marcar.
 // Así tu versión ajustada sirve de plantilla para el próximo.
 async function duplicarKit(kit) {
+  if (creandoKit) return; // un segundo toque no debe crear otra copia
+  creandoKit = true;
+  const nombre = `${kit.name} (copia)`;
   const items = (kit.items || []).map((it) => ({ ...it }));
   try {
     const ref = await addDoc(coleccionKits(), {
-      name: `${kit.name} (copia)`, items, checked: {}, order: kits.length, createdAt: serverTimestamp(),
+      name: nombre, items, checked: {}, order: kits.length, createdAt: serverTimestamp(),
     });
-    $("#dialogo-kit-nuevo").close();
-    kitAbiertoId = ref.id;
+    abrirKitNuevo(ref.id);
+    avisar(`Se creó «${nombre}» ✓`);
   } catch (err) {
     console.error(err);
     avisar("No se pudo duplicar.");
+  } finally {
+    creandoKit = false;
   }
 }
 
 function abrirDialogoRenombrar(kit) {
   kitRenombrarId = kit.id;
+  $("#titulo-kit-renombrar").textContent = kit.esPlantilla ? "Renombrar plantilla" : "Renombrar kit";
   $("#kit-nuevo-nombre").value = kit.name;
   $("#dialogo-kit-renombrar").showModal();
 }
 
 async function renombrarKit() {
-  const kit = kits.find((k) => k.id === kitRenombrarId);
+  const kit = buscarKit(kitRenombrarId);
   const nombre = $("#kit-nuevo-nombre").value.trim();
   if (!kit || !nombre) return;
-  await updateDoc(doc(coleccionKits(), kit.id), { name: nombre.slice(0, 80) });
+  await updateDoc(refDe(kit), { name: nombre.slice(0, 80) });
   $("#dialogo-kit-renombrar").close();
 }
 
+/* Convierte el kit que ya ajustaste a tu gusto en plantilla, para que la
+   próxima vez arranque así. Si ya hay una con el mismo nombre, la reemplaza. */
+async function guardarComoPlantilla(kit) {
+  if (creandoKit) return;
+  creandoKit = true;
+  try {
+    const items = (kit.items || []).map((it) => ({ ...it }));
+    const existente = plantillas.find(
+      (p) => p.name.toLowerCase() === kit.name.trim().toLowerCase(),
+    );
+    if (existente) {
+      if (!confirm(`Ya hay una plantilla «${existente.name}». ¿Reemplazarla con este kit?`)) return;
+      await updateDoc(doc(coleccionPlantillas(), existente.id), { name: kit.name, items });
+    } else {
+      await addDoc(coleccionPlantillas(), {
+        name: kit.name, items, order: plantillas.length, createdAt: serverTimestamp(),
+      });
+    }
+    avisar(`Plantilla «${kit.name}» guardada ✓`);
+  } catch (err) {
+    console.error(err);
+    avisar("No se pudo guardar la plantilla.");
+  } finally {
+    creandoKit = false;
+  }
+}
+
 function abrirDialogoNuevoKit() {
+  const ordenadas = [...plantillas].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  $("#plantillas-seccion").hidden = ordenadas.length === 0;
   $("#plantillas-kit").replaceChildren(
-    ...KITS_PLANTILLA.map((p) => {
+    ...ordenadas.map((p) => {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "chip-plantilla";
@@ -1484,17 +1760,10 @@ $("#form-tienda").addEventListener("submit", (ev) => {
   agregarTienda($("#tienda-nombre").value);
   $("#dialogo-tienda").close();
 });
-// Modo reordenar: muestra las asas (⠿) para arrastrar tiendas y artículos.
-$("#btn-reordenar").addEventListener("click", () => {
-  const activo = $("#vista-compras").classList.toggle("reordenando");
-  const btn = $("#btn-reordenar");
-  btn.textContent = activo ? "✓ Listo" : "⇅ Reordenar";
-  btn.classList.toggle("activo", activo);
-});
-
 // Kits
 $("#tab-kits").addEventListener("click", () => mostrarVista("kits"));
 $("#btn-nuevo-kit").addEventListener("click", abrirDialogoNuevoKit);
+$("#btn-plantillas").addEventListener("click", abrirPlantillas);
 $("#btn-cancelar-kit").addEventListener("click", () => $("#dialogo-kit-nuevo").close());
 $("#form-kit-vacio").addEventListener("submit", (ev) => {
   ev.preventDefault();

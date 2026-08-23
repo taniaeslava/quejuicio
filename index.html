@@ -94,7 +94,6 @@
       <!-- ── Vista: Compras ── -->
       <div id="vista-compras" hidden>
         <div id="lista-tiendas" class="lista-tiendas"></div>
-        <button id="btn-reordenar" class="fila-tenue" type="button">⇅ Reordenar</button>
         <button id="btn-nueva-tienda" class="fila-punteada" type="button">＋ Agregar tienda</button>
       </div>
 
@@ -111,8 +110,11 @@
             </p>
           </div>
           <button id="btn-nuevo-kit" class="fila-punteada" type="button">＋ Nuevo kit</button>
+          <button id="btn-plantillas" class="fila-tenue" type="button">✎ Editar plantillas</button>
         </div>
-        <!-- detalle de un kit (se llena al abrir uno) -->
+        <!-- lista de plantillas (se llena al entrar) -->
+        <div id="plantillas-lista" hidden></div>
+        <!-- detalle de un kit o de una plantilla (se llena al abrir uno) -->
         <div id="kit-detalle" hidden></div>
       </div>
     </main>
@@ -196,8 +198,10 @@
     <div class="dialogo-cuerpo">
       <h2>Nuevo kit</h2>
       <div class="tile-band tile-band-fina" aria-hidden="true"></div>
-      <h3>Empieza con una plantilla</h3>
-      <div id="plantillas-kit" class="chips-plantilla"></div>
+      <div id="plantillas-seccion">
+        <h3>Empieza con una plantilla</h3>
+        <div id="plantillas-kit" class="chips-plantilla"></div>
+      </div>
       <div id="mis-kits-seccion" hidden>
         <h3>O parte de uno tuyo (copia tu versión)</h3>
         <div id="mis-kits-chips" class="chips-plantilla"></div>
@@ -239,7 +243,7 @@
   <!-- ── Diálogo: renombrar kit ──────────────────────────── -->
   <dialog id="dialogo-kit-renombrar">
     <form id="form-kit-renombrar" method="dialog">
-      <h2>Renombrar kit</h2>
+      <h2 id="titulo-kit-renombrar">Renombrar kit</h2>
       <div class="tile-band tile-band-fina" aria-hidden="true"></div>
       <label for="kit-nuevo-nombre">Nombre del kit</label>
       <input id="kit-nuevo-nombre" type="text" maxlength="80" required autocomplete="off" />

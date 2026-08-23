@@ -8,3 +8,6 @@ android-app/QueJuicio.apk
 # Claves de cuenta de servicio — NUNCA subir al repo (van como secreto)
 *serviceAccount*.json
 *service-account*.json
+
+# Config local de Claude Code (no hace parte de la app)
+.claude/

@@ -61,15 +61,26 @@ service cloud.firestore {
         && request.resource.data.name.size() <= 100;
     }
 
-    // Preferencias del hogar (p. ej. el orden manual de las tiendas).
+    // Preferencias y banderas del hogar (orden manual de las tiendas, si ya
+    // se sembraron las plantillas...). storeOrder es opcional.
     match /households/{code}/prefs/{docId} {
       allow read, delete: if true;
-      allow create, update: if request.resource.data.storeOrder is list
-        && request.resource.data.storeOrder.size() <= 100;
+      allow create, update: if !('storeOrder' in request.resource.data)
+        || (request.resource.data.storeOrder is list
+            && request.resource.data.storeOrder.size() <= 100);
     }
 
     // Kits: listas para no olvidar nada (asado, viaje, playa…).
     match /households/{code}/kits/{kitId} {
+      allow read, delete: if true;
+      allow create, update: if request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80;
+    }
+
+    // Plantillas de kits: las de fábrica se copian aquí la primera vez y de
+    // ahí en adelante son editables (misma forma que un kit, sin 'checked').
+    match /households/{code}/plantillas/{plantillaId} {
       allow read, delete: if true;
       allow create, update: if request.resource.data.name is string
         && request.resource.data.name.size() > 0

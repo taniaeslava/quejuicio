@@ -281,14 +281,38 @@ main { padding: 0 20px calc(6.5rem + env(safe-area-inset-bottom)); max-width: 34
 }
 .item label span { flex: 1; min-width: 0; font-size: 15px; color: var(--tinta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* asas de arrastre: ocultas salvo en modo reordenar */
-.item-grip, .tienda-grip { display: none; }
-#vista-compras.reordenando .item-grip,
-#vista-compras.reordenando .tienda-grip {
+/* En Compras la casilla va sola (marcar = comprado) y el texto es hermano
+   suyo (tocarlo = corregir el nombre). */
+.item-check { flex: none !important; }
+.item-texto {
+  flex: 1; min-width: 0; font-size: 15px; color: var(--tinta);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding: 3px 0; cursor: text;
+}
+.item-edit {
+  flex: 1; min-width: 0;
+  font: inherit; font-size: 15px; color: var(--tinta);
+  background: none; border: none; outline: none;
+  border-bottom: 1.5px solid var(--cobalto);
+  padding: 2px 0;
+}
+/* Ítem de plantilla: no hay nada que marcar, un puntico alinea el texto. */
+.item-punto {
+  width: 21px; flex: none; display: grid; place-items: center;
+  color: var(--label); font-size: 15px; line-height: 1;
+}
+.item-punto::before { content: "•"; }
+
+/* asas de arrastre (⠿): siempre a la vista, pero discretas. Arrastrarlas
+   reordena artículos y tiendas; el resto de la fila no se mueve. */
+.item-grip, .tienda-grip {
   display: grid; place-items: center; flex: none;
-  color: rgba(30, 75, 115, 0.4); font-size: 1.15rem; cursor: grab;
+  color: rgba(30, 75, 115, 0.3); font-size: 1.15rem; cursor: grab;
   touch-action: none; padding: 0 0.15rem;
 }
+/* En Compras la fila arranca más a la derecha (por el asa): la línea fina
+   que separa artículos se corre para quedar alineada con el texto. */
+#vista-compras .item:not(:first-child)::before { left: 82px; }
 
 /* fila "+ Añadir a X" (input silencioso, sin caja) */
 .add-row { display: flex; align-items: center; gap: 13px; padding: 12px 16px 15px; }

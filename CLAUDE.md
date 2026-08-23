@@ -29,10 +29,18 @@ por Firestore. Para el "qué y por qué" en lenguaje humano, ver
    función nueva no lee ni escribe nada. Este es el error #1 más común.
 4. **Mantén el estilo azulejo** (ver "Diseño"). No metas un tercer motivo que
    compita con los existentes ni cambies la paleta.
-5. **`taskStatus()` en `app.js` y `estaVencida()` en `notify/index.js` deben
+5. **En la lista de compras cada gesto tiene un dueño y no se pisan:** la
+   casilla marca como comprado (borra y guarda en la despensa), tocar el
+   **texto** lo edita en el sitio (`editarItemInline`), deslizar a la derecha
+   elimina sin recordar y el asa ⠿ reordena. Si agregas otro gesto, revisa
+   `habilitarSwipe` (que ignora `.item-grip` y `.item-edit`) y que
+   `pintarCompras()` siga absteniéndose de re-dibujar mientras hay un
+   `.item-edit` abierto — si no, un cambio del otro teléfono borra lo que se
+   está escribiendo.
+6. **`taskStatus()` en `app.js` y `estaVencida()` en `notify/index.js` deben
    quedar consistentes**: ambos definen cuándo una tarea está vencida. Si
    cambias la regla en uno, cámbiala en el otro.
-6. **Cuida los créditos de Netlify.** Cada despliegue a producción cuesta ~15
+7. **Cuida los créditos de Netlify.** Cada despliegue a producción cuesta ~15
    créditos (el plan gratis da 300/mes, o sea ~20 despliegues). Netlify se
    despliega solo en cada push que toque la app web. Por eso: **agrupa varios
    cambios en un solo push** en vez de subir cambio por cambio. Los cambios que
@@ -93,14 +101,25 @@ households/{codigo}/stores/{id}     { name, createdAt }
 households/{codigo}/pantry/{clave}  { name, store, lastBought }
 households/{codigo}/prefs/general   { storeOrder: [...] }
 households/{codigo}/kits/{id}       { name, order, createdAt, items:[{id,label,cat}], checked:{itemId:true} }
+households/{codigo}/plantillas/{id} { name, order, createdAt, items:[{id,label,cat}] }
 ```
 
 Kits = listas reutilizables para no olvidar nada (asado, viaje, playa, picnic…).
 Los ítems se agrupan por `cat` (categoría); lo marcado vive en el mapa `checked`
 (se actualiza con field-path `checked.<itemId>` para no reescribir el array y
 evitar choques entre los dos teléfonos); "Desmarcar todo" hace `checked: {}`.
-Las plantillas viven en `KITS_PLANTILLA` (app.js); al usarlas se copia un kit
-editable al hogar.
+Las plantillas son EDITABLES y viven en `plantillas/` (misma forma que un kit,
+sin `checked`). `KITS_PLANTILLA` en app.js es solo la **semilla de fábrica**:
+`quizasSembrarPlantillas()` la copia a Firestore la primera vez que se entra a
+un hogar (ids fijos = el nombre en minúsculas, para que los dos teléfonos no
+creen duplicados) y deja la bandera `plantillasSembradas` en `prefs/general`
+para que no reaparezcan si se borran a propósito. De ahí en adelante el código
+NO vuelve a mirar `KITS_PLANTILLA`.
+
+`pintarDetalleKit(kit)` sirve para kits y para plantillas: se distingue con
+`kit.esPlantilla` (lo pone el snapshot). `refDe(kit)` devuelve el documento en
+la colección correcta y `buscarKit(id)` busca en las dos listas — úsalos en
+cualquier escritura nueva en vez de `doc(coleccionKits(), id)`.
 
 `{codigo}` es el código de hogar (secreto compartido; **no lo escribas en
 ningún archivo del repo**, que es público — solo se teclea en cada teléfono).
@@ -121,12 +140,17 @@ de bordes. Todos los tokens están en `:root` — úsalos, no inventes colores.
   `--sombra-card`; filas separadas por finas líneas internas (pseudo `::before`);
   franja de azulejo delgada `.tile-band`; anillo conic-gradient con disco
   interior; el logo (baldosa con estrella) se mantiene igual, es SVG inline.
-- Las asas de arrastre (⠿) van ocultas salvo en "modo reordenar"
-  (`#vista-compras.reordenando`, lo activa `#btn-reordenar`).
+- Las asas de arrastre (⠿) están siempre visibles pero discretas (30% de
+  opacidad). Antes había un "modo reordenar" que las escondía; se quitó porque
+  nadie lo encontraba.
 
 ## RECETA: agregar otra pestaña/sección (p. ej. "Notas")
 
-Ya hay tres: **Tareas, Compras y Kits**. Compras (accordions) y Kits (lista +
+Ojo: la pestaña Kits ya tiene cuatro pantallas internas (lista de kits,
+detalle de kit, lista de plantillas y detalle de plantilla) que `pintarKits()`
+muestra y esconde. No es un molde a copiar tal cual.
+
+Ya hay tres pestañas: **Tareas, Compras y Kits**. Compras (accordions) y Kits (lista +
 detalle) son los mejores moldes a copiar. Pasos:
 
 1. **HTML** ([index.html](index.html)):
