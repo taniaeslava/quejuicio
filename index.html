@@ -95,6 +95,7 @@
       <div id="vista-compras" hidden>
         <div id="lista-tiendas" class="lista-tiendas"></div>
         <button id="btn-nueva-tienda" class="fila-punteada" type="button">＋ Agregar tienda</button>
+        <button id="btn-notion" class="fila-tenue" type="button">⬇ Traer lista de Notion</button>
       </div>
 
       <!-- ── Vista: Kits ── -->
@@ -189,6 +190,27 @@
         <span class="separador-flexible"></span>
         <button type="button" id="btn-cancelar-tienda" class="btn">Cancelar</button>
         <button type="submit" class="btn btn-primario">Crear</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── Diálogo: traer la lista de Notion ───────────────── -->
+  <dialog id="dialogo-notion">
+    <form id="form-notion" method="dialog">
+      <h2>Traer lista de Notion</h2>
+      <div class="tile-band tile-band-fina" aria-hidden="true"></div>
+      <p class="nota" id="notion-estado">Buscando las semanas…</p>
+      <div id="notion-campos" hidden>
+        <label for="notion-semana">¿Qué semana del meal prep?</label>
+        <select id="notion-semana"></select>
+        <label for="notion-tienda">¿A qué tienda van?</label>
+        <select id="notion-tienda"></select>
+        <p class="nota">Los que ya estén en la lista no se repiten.</p>
+      </div>
+      <div class="dialogo-acciones">
+        <span class="separador-flexible"></span>
+        <button type="button" id="btn-cancelar-notion" class="btn">Cancelar</button>
+        <button type="submit" id="btn-traer-notion" class="btn btn-primario" disabled>Traer</button>
       </div>
     </form>
   </dialog>

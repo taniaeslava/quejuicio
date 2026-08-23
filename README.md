@@ -37,6 +37,7 @@ quejuicio/
 ├── icons/                     iconos de la app
 ├── firestore.rules            reglas de seguridad de Firestore
 ├── notify/index.js            script diario que manda el push (Admin SDK)
+├── netlify/functions/notion.js  ayudante que le pide las listas a Notion
 └── .github/workflows/notify.yml   cron de GitHub Actions
 ```
 
@@ -170,6 +171,45 @@ El script recorre todas las tareas, y por cada hogar con tareas vencidas
 manda un push a todos los teléfonos registrados. Marca `lastNotified` en la
 tarea para no repetir el aviso el mismo día; al marcar la tarea como hecha
 (o editarla) el campo se limpia.
+
+---
+
+## Traer la lista de compras de Notion (opcional)
+
+En Compras hay un botón **"⬇ Traer lista de Notion"** que lee las páginas
+`N-0 Ingredientes` del *Meal Prep Calendar* y las mete en la tienda que elijas,
+sin repetir lo que ya esté en la lista.
+
+Notion no deja que una página web lo llame directamente, así que en medio va
+`netlify/functions/notion.js`: un archivito que corre en Netlify, guarda la
+clave y hace la llamada por la app. Se configura una sola vez:
+
+**1. Crear la integración en Notion**
+
+1. Entra a <https://www.notion.so/my-integrations> → **New integration**.
+2. Ponle un nombre (p. ej. `QueJuicio`), escoge el workspace y **Submit**.
+3. Copia el **Internal Integration Secret** (empieza por `ntn_` o `secret_`).
+
+**2. Darle acceso al calendario**
+
+Abre la página **Meal Prep Calendar** en Notion → menú `···` (arriba a la
+derecha) → **Conexiones** / *Connections* → busca `QueJuicio` y conéctala. Sin
+este paso Notion responde "no encuentro la página" (error 404).
+
+**3. Guardar la clave en Netlify**
+
+En Netlify: **Site configuration → Environment variables → Add a variable**.
+
+| Variable        | Valor                                                       |
+| --------------- | ----------------------------------------------------------- |
+| `NOTION_TOKEN`  | la clave del paso 1 (**obligatoria**)                        |
+| `CODIGO_HOGAR`  | el código de hogar (opcional; si está, solo responde a quien lo mande) |
+| `NOTION_PAGINA` | id de otra página de Notion, si algún día se cambia de calendario (opcional) |
+
+Después de guardarlas hay que **volver a desplegar** para que el ayudante las
+vea (Deploys → Trigger deploy → *Clear cache and deploy site*).
+
+> ⚠️ La clave de Notion **nunca** va en el repo (es público). Solo en Netlify.
 
 ---
 

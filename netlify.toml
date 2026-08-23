@@ -9,6 +9,12 @@
   # Netlify se salta el despliegue (git diff sin cambios → sale 0 → skip).
   ignore = "git diff --quiet HEAD^ HEAD -- . ':!android-app' ':!notify' ':!.github' ':!firestore.rules' ':!*.md'"
 
+# El ayudante que habla con Notion (el navegador no puede hacerlo solo).
+# Netlify lo compila en la nube; aquí no hace falta Node ni npm install.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 # Como la app Android carga el sitio en vivo, no queremos que se quede pegada
 # con una versión vieja: "no-cache" hace que el navegador/WebView revalide con
 # el servidor en cada carga (usa 304 si no cambió, así que sigue siendo rápido).

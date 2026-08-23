@@ -16,6 +16,11 @@ por Firestore. Para el "qué y por qué" en lenguaje humano, ver
 
 ## Reglas de oro (romper esto rompe la app)
 
+0. **El único código de servidor es `netlify/functions/notion.js`** y existe
+   por una razón concreta: Notion no acepta llamadas desde el navegador. No
+   metas ahí lógica de la app ni lo uses como excusa para agregar un backend.
+   Sus claves (`NOTION_TOKEN`, `CODIGO_HOGAR`) viven en las variables de
+   entorno de Netlify, **nunca en el repo** (que es público).
 1. **Sin build, sin framework, sin npm en el frontend.** Es HTML + CSS +
    JavaScript puro con módulos ES cargados por CDN. No agregues un empaquetador
    ni dependencias de frontend. Debe seguir siendo desplegable con solo subir
@@ -60,6 +65,7 @@ firestore.rules             Reglas de seguridad de Firestore
 icons/                      Íconos de la PWA
 netlify.toml                Config de Netlify (sitio estático, sin compilación)
 notify/index.js             Script diario de notificaciones (Node + Admin SDK, corre en Actions)
+netlify/functions/notion.js Ayudante que habla con Notion (corre en Netlify, tiene la clave)
 .github/workflows/          notify.yml (avisos diarios) y build-android.yml (compila el APK)
 
 # La app ANDROID nativa (Capacitor) vive aparte, en android-app/:
@@ -82,6 +88,10 @@ Está en secciones marcadas con comentarios `/* ── ... ── */`, en este o
   pestaña activa.
 - **Lista de compras**: render de tiendas, autocompletado, comprar/eliminar/
   deshacer, reordenar (arrastre), agregar/quitar tiendas.
+- **Traer de Notion**: `pedirANotion()` llama a `/.netlify/functions/notion`
+  (el navegador no puede llamar a Notion directo: lo bloquea por CORS). El
+  diálogo `#dialogo-notion` deja escoger semana y tienda, y la importación
+  reusa `agregarVariasCompras()`, que ya deduplica.
 - **Notificaciones push (FCM)**.
 - **Utilidades UI**: `avisar()` (toast) y `avisarDeshacer()` (toast con botón).
 - **Arranque y eventos**: `addEventListener` de todos los botones + registro del

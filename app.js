@@ -1003,6 +1003,114 @@ async function eliminarTienda(nombre, items) {
   await deleteDoc(doc(coleccionTiendas(), extra.id));
 }
 
+/* ── Traer la lista de compras de Notion ────────────────────
+   El navegador no puede llamar a Notion directamente (Notion lo bloquea), así
+   que le preguntamos al ayudante que vive en Netlify, en netlify/functions/
+   notion.js. Él sí tiene la clave y devuelve las semanas y sus ingredientes. */
+const RUTA_NOTION = "/.netlify/functions/notion";
+let semanasNotion = [];
+
+async function pedirANotion(params) {
+  let r;
+  try {
+    r = await fetch(`${RUTA_NOTION}?${new URLSearchParams(params)}`, {
+      headers: { "x-codigo-hogar": codigoHogar },
+    });
+  } catch {
+    throw new Error("Sin internet o el sitio no responde.");
+  }
+  if (r.status === 404) {
+    throw new Error("El ayudante de Notion todavía no está publicado en Netlify.");
+  }
+  const datos = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(datos.mensaje || "Notion no respondió bien.");
+  return datos;
+}
+
+// Muestra un mensaje en el diálogo y esconde los campos mientras tanto.
+function estadoNotion(texto) {
+  $("#notion-estado").hidden = false;
+  $("#notion-estado").textContent = texto;
+  $("#notion-campos").hidden = true;
+}
+
+async function abrirDialogoNotion() {
+  $("#notion-campos").hidden = true;
+  $("#btn-traer-notion").disabled = true;
+  estadoNotion("Buscando las semanas en Notion…");
+  $("#dialogo-notion").showModal();
+  try {
+    const { semanas } = await pedirANotion({ accion: "semanas" });
+    semanasNotion = semanas || [];
+    if (!semanasNotion.length) {
+      estadoNotion("No encontré páginas de ingredientes en el calendario.");
+      return;
+    }
+
+    $("#notion-semana").replaceChildren(
+      ...semanasNotion.map((s) => {
+        const o = document.createElement("option");
+        o.value = s.id;
+        o.textContent = `Semana ${s.semana}`;
+        return o;
+      }),
+    );
+    // Sugerir la siguiente a la última que se trajo (casi siempre es esa).
+    const ultima = Number(localStorage.getItem("queJuicio.ultimaSemanaNotion") || 0);
+    const sugerida = semanasNotion.find((s) => s.semana === ultima + 1) || semanasNotion[0];
+    $("#notion-semana").value = sugerida.id;
+
+    const tiendas = listaDeTiendas();
+    $("#notion-tienda").replaceChildren(
+      ...tiendas.map((n) => {
+        const o = document.createElement("option");
+        o.value = n;
+        o.textContent = n;
+        return o;
+      }),
+    );
+    const guardada = localStorage.getItem("queJuicio.tiendaNotion");
+    $("#notion-tienda").value = tiendas.includes(guardada) ? guardada : tiendas[0];
+
+    $("#notion-estado").hidden = true;
+    $("#notion-campos").hidden = false;
+    $("#btn-traer-notion").disabled = false;
+  } catch (err) {
+    console.error(err);
+    estadoNotion(err.message);
+  }
+}
+
+async function traerDeNotion() {
+  const id = $("#notion-semana").value;
+  const tienda = $("#notion-tienda").value;
+  const semana = semanasNotion.find((s) => s.id === id);
+  $("#btn-traer-notion").disabled = true;
+  estadoNotion("Trayendo los ingredientes…");
+  try {
+    const { lineas } = await pedirANotion({ accion: "ingredientes", id });
+    if (!lineas || !lineas.length) {
+      estadoNotion("Esa semana no tiene ingredientes escritos.");
+      $("#btn-traer-notion").disabled = false;
+      $("#notion-campos").hidden = false;
+      return;
+    }
+    await agregarVariasCompras(tienda, lineas);
+    if (semana) localStorage.setItem("queJuicio.ultimaSemanaNotion", String(semana.semana));
+    localStorage.setItem("queJuicio.tiendaNotion", tienda);
+    // Dejar la tienda abierta para que se vea lo que llegó.
+    tiendasAbiertas.add(tienda);
+    localStorage.setItem("queJuicio.tiendasAbiertas", JSON.stringify([...tiendasAbiertas]));
+    $("#dialogo-notion").close();
+    pintarCompras();
+  } catch (err) {
+    console.error(err);
+    estadoNotion(err.message);
+    $("#btn-traer-notion").disabled = false;
+    $("#notion-campos").hidden = false;
+  }
+}
+
 /* ── Kits (listas para no olvidar nada) ─────────────────────
    Cada kit vive en households/{code}/kits/{id} con:
      items:   [{ id, label, cat }]     (cat = categoría)
@@ -1755,6 +1863,9 @@ $("#btn-nueva-tienda").addEventListener("click", () => {
   $("#dialogo-tienda").showModal();
 });
 $("#btn-cancelar-tienda").addEventListener("click", () => $("#dialogo-tienda").close());
+$("#btn-notion").addEventListener("click", abrirDialogoNotion);
+$("#btn-cancelar-notion").addEventListener("click", () => $("#dialogo-notion").close());
+$("#form-notion").addEventListener("submit", (ev) => { ev.preventDefault(); traerDeNotion(); });
 $("#form-tienda").addEventListener("submit", (ev) => {
   ev.preventDefault();
   agregarTienda($("#tienda-nombre").value);
