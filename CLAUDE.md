@@ -8,9 +8,9 @@
 ## Qué es
 
 QueJuicio es una PWA casera y compartida para dos personas (una pareja). Tiene
-dos secciones: **Tareas** del hogar (recurrentes y de una sola vez, con avisos)
-y **Lista de compras** por tiendas. Todo se sincroniza entre los dos teléfonos
-por Firestore. Para el "qué y por qué" en lenguaje humano, ver
+tres secciones: **Tareas** del hogar (recurrentes y de una sola vez, con avisos),
+**Compras** por tiendas y **Kits** (listas para no olvidar nada al preparar algo,
+por categorías). Todo se sincroniza entre los dos teléfonos por Firestore. Para el "qué y por qué" en lenguaje humano, ver
 [SOBRE-QUEJUICIO.md](SOBRE-QUEJUICIO.md). Para la instalación/configuración, ver
 [README.md](README.md).
 
@@ -55,7 +55,7 @@ por Firestore. Para el "qué y por qué" en lenguaje humano, ver
 ## Mapa de archivos
 
 # La app WEB (lo que ven los teléfonos) vive en la raíz:
-index.html                  Pantalla de entrada + pantalla principal (2 vistas) + diálogos
+index.html                  Pantalla de entrada + pantalla principal (3 vistas: tareas/compras/kits) + diálogos
 style.css                   Estilo azulejo; tokens de color en :root
 app.js                      TODA la lógica del frontend (un solo módulo)
 config.js                   Config de Firebase (claves públicas; no es secreto)
