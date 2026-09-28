@@ -734,15 +734,20 @@ async function eliminarItem(item) {
 /* Arrastre para reordenar ÍTEMS (asa ⠿ de cada fila).
    Clave anti-bloqueo: el estado "arrastrando" se activa SOLO cuando el dedo
    se mueve de verdad (> UMBRAL px). Un toque simple nunca deja la lista
-   trabada. Y `fin` siempre limpia el estado, pase lo que pase. */
+   trabada. Y `fin` siempre limpia el estado, pase lo que pase.
+   Ojo: el movimiento y el soltar se escuchan en `window`, NO en el asa. Al
+   mover la fila en el DOM (insertBefore) el navegador le quita al asa la
+   captura del puntero y los eventos siguientes le llegan a lo que esté bajo
+   el dedo; escuchando en el asa, `fin` nunca corría, el orden nuevo no se
+   guardaba y el siguiente re-render lo devolvía a su puesto. */
 const UMBRAL_ARRASTRE = 6;
 function habilitarArrastre(ul, tienda) {
   for (const grip of ul.querySelectorAll(".item-grip")) {
     const li = grip.closest(".item");
-    let y0 = 0, activo = false, moviendo = false;
+    let y0 = 0, activo = false, moviendo = false, puntero = null;
 
     const mover = (ev) => {
-      if (!activo) return;
+      if (!activo || ev.pointerId !== puntero) return;
       if (!moviendo) {
         if (Math.abs(ev.clientY - y0) < UMBRAL_ARRASTRE) return; // todavía es un toque
         moviendo = true;
@@ -760,9 +765,10 @@ function habilitarArrastre(ul, tienda) {
       else ul.append(li);
     };
     const fin = async (ev) => {
-      grip.removeEventListener("pointermove", mover);
-      grip.removeEventListener("pointerup", fin);
-      grip.removeEventListener("pointercancel", fin);
+      if (ev.pointerId !== puntero) return;
+      window.removeEventListener("pointermove", mover);
+      window.removeEventListener("pointerup", fin);
+      window.removeEventListener("pointercancel", fin);
       try { grip.releasePointerCapture(ev.pointerId); } catch {}
       const huboArrastre = moviendo;
       activo = false;
@@ -777,25 +783,28 @@ function habilitarArrastre(ul, tienda) {
       y0 = ev.clientY;
       activo = true;
       moviendo = false;
+      puntero = ev.pointerId;
       try { grip.setPointerCapture(ev.pointerId); } catch {}
-      grip.addEventListener("pointermove", mover);
-      grip.addEventListener("pointerup", fin);
-      grip.addEventListener("pointercancel", fin);
+      window.addEventListener("pointermove", mover);
+      window.addEventListener("pointerup", fin);
+      window.addEventListener("pointercancel", fin);
     });
   }
 }
 
 /* Arrastre para reordenar TIENDAS (asa ⠿ del encabezado). Mismo criterio
-   anti-bloqueo que los ítems: solo arrastra si el dedo se mueve de verdad. */
+   anti-bloqueo que los ítems: solo arrastra si el dedo se mueve de verdad.
+   Y, como allá, el movimiento y el soltar se escuchan en `window` (mover la
+   tarjeta en el DOM le quita al asa la captura del puntero). */
 function habilitarArrastreTienda(grip, sec) {
   grip.style.touchAction = "none";
   // Un toque en el asa no debe plegar/desplegar la tienda.
   grip.addEventListener("click", (ev) => ev.stopPropagation());
 
-  let y0 = 0, activo = false, moviendo = false, cont = null;
+  let y0 = 0, activo = false, moviendo = false, cont = null, puntero = null;
 
   const mover = (ev) => {
-    if (!activo) return;
+    if (!activo || ev.pointerId !== puntero) return;
     if (!moviendo) {
       if (Math.abs(ev.clientY - y0) < UMBRAL_ARRASTRE) return; // todavía es un toque
       moviendo = true;
@@ -813,9 +822,10 @@ function habilitarArrastreTienda(grip, sec) {
     else cont.append(sec);
   };
   const fin = async (ev) => {
-    grip.removeEventListener("pointermove", mover);
-    grip.removeEventListener("pointerup", fin);
-    grip.removeEventListener("pointercancel", fin);
+    if (ev.pointerId !== puntero) return;
+    window.removeEventListener("pointermove", mover);
+    window.removeEventListener("pointerup", fin);
+    window.removeEventListener("pointercancel", fin);
     try { grip.releasePointerCapture(ev.pointerId); } catch {}
     const huboArrastre = moviendo;
     activo = false;
@@ -833,10 +843,11 @@ function habilitarArrastreTienda(grip, sec) {
     y0 = ev.clientY;
     activo = true;
     moviendo = false;
+    puntero = ev.pointerId;
     try { grip.setPointerCapture(ev.pointerId); } catch {}
-    grip.addEventListener("pointermove", mover);
-    grip.addEventListener("pointerup", fin);
-    grip.addEventListener("pointercancel", fin);
+    window.addEventListener("pointermove", mover);
+    window.addEventListener("pointerup", fin);
+    window.addEventListener("pointercancel", fin);
   });
 }
 

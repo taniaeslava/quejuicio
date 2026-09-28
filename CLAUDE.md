@@ -41,7 +41,10 @@ por categorías). Todo se sincroniza entre los dos teléfonos por Firestore. Par
    `habilitarSwipe` (que ignora `.item-grip` y `.item-edit`) y que
    `pintarCompras()` siga absteniéndose de re-dibujar mientras hay un
    `.item-edit` abierto — si no, un cambio del otro teléfono borra lo que se
-   está escribiendo.
+   está escribiendo. Los arrastres del asa (`habilitarArrastre` y
+   `habilitarArrastreTienda`) escuchan `pointermove`/`pointerup` en `window`,
+   no en el asa: al mover la fila en el DOM el asa pierde la captura del
+   puntero y, si se escucha ahí, el soltar nunca llega y el orden no se guarda.
 6. **`taskStatus()` en `app.js` y `estaVencida()` en `notify/index.js` deben
    quedar consistentes**: ambos definen cuándo una tarea está vencida. Si
    cambias la regla en uno, cámbiala en el otro.
