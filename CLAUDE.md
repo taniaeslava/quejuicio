@@ -10,7 +10,8 @@
 QueJuicio es una PWA casera y compartida para dos personas (una pareja). Tiene
 tres secciones: **Tareas** del hogar (recurrentes y de una sola vez, con avisos),
 **Compras** por tiendas y **Kits** (listas para no olvidar nada al preparar algo,
-por categorías). Todo se sincroniza entre los dos teléfonos por Firestore. Para el "qué y por qué" en lenguaje humano, ver
+por categorías). Hay una cuarta pestaña, **Plata**, que todavía no hace nada:
+solo muestra el mosaico y «estará disponible pronto». Todo se sincroniza entre los dos teléfonos por Firestore. Para el "qué y por qué" en lenguaje humano, ver
 [SOBRE-QUEJUICIO.md](SOBRE-QUEJUICIO.md). Para la instalación/configuración, ver
 [README.md](README.md).
 
@@ -58,7 +59,7 @@ por categorías). Todo se sincroniza entre los dos teléfonos por Firestore. Par
 ## Mapa de archivos
 
 # La app WEB (lo que ven los teléfonos) vive en la raíz:
-index.html                  Pantalla de entrada + pantalla principal (3 vistas: tareas/compras/kits) + diálogos
+index.html                  Pantalla de entrada + pantalla principal (4 vistas: tareas/compras/kits/plata) + diálogos
 style.css                   Estilo azulejo; tokens de color en :root
 app.js                      TODA la lógica del frontend (un solo módulo)
 config.js                   Config de Firebase (claves públicas; no es secreto)
@@ -158,16 +159,23 @@ de bordes. Todos los tokens están en `:root` — úsalos, no inventes colores.
   `icono("check" | "mas" | "editar" | "atras" | "bajar" | "cerrar" | "asa")`
   de app.js (SVG de trazo, `currentColor`, estilo de las pestañas). En el HTML
   estático, el mismo SVG con `class="ico"`.
-- **Modo oscuro «azulejo de noche»:** `@media (prefers-color-scheme: dark)`
-  redefine los tokens de `:root`. Por eso NO pongas colores fijos en el CSS ni
+- **Modo oscuro «azulejo de noche»:** `:root[data-tema="noche"]` redefine los
+  tokens de `:root`. El atributo lo pone `aplicarTema()`, un `<script>` en el
+  `<head>` de index.html (corre antes de pintar, así no hay destello claro),
+  según Ajustes → Apariencia: «auto» (sigue al teléfono, por defecto), «dia» o
+  «noche». La preferencia vive en `localStorage` (`queJuicio.tema`), es por
+  teléfono y NO va a Firestore. No vuelvas a usar
+  `@media (prefers-color-scheme: dark)` para colores: la opción manual dejaría
+  de ganarle al teléfono. Por eso mismo NO pongas colores fijos en el CSS ni
   en el JS: todo por variable (p. ej. el anillo toma su color de la clase
   fresca/pronto/vencida, no de un hex en app.js). El logo usa `--logo-*`, que
   no cambian con el tema.
 - **Logros:** la estrella del logo (`estrella()` en app.js) marca «Todo al
   día» y los kits completos.
 - **Mosaico de azulejos:** solo en el diálogo «Acerca de QueJuicio» (Ajustes →
-  Acerca de). Se probó en la entrada y el estado vacío y no funcionó: no lo
-  saques de ahí.
+  Acerca de) y en la pestaña Plata mientras no esté disponible (app.js lo
+  clona del de «Acerca de», así que hay un solo SVG). Se probó en la entrada y
+  el estado vacío y no funcionó: no lo pongas en más sitios.
 - **Versión:** al publicar cambios, sube `VERSION_APP` y `ULTIMA_ACTUALIZACION`
   al inicio de app.js (se muestran en «Acerca de»).
 - Tareas: grupo «YA TOCA» arriba con las vencidas; al marcar «hecha» el
@@ -184,7 +192,9 @@ Ojo: la pestaña Kits ya tiene cuatro pantallas internas (lista de kits,
 detalle de kit, lista de plantillas y detalle de plantilla) que `pintarKits()`
 muestra y esconde. No es un molde a copiar tal cual.
 
-Ya hay tres pestañas: **Tareas, Compras y Kits**. Compras (accordions) y Kits (lista +
+Ya hay cuatro pestañas: **Tareas, Compras, Kits y Plata** (esta última es
+un aviso de «pronto», sin datos: cuando se construya de verdad, sigue esta
+receta reemplazando su contenido). Compras (accordions) y Kits (lista +
 detalle) son los mejores moldes a copiar. Pasos:
 
 1. **HTML** ([index.html](index.html)):

@@ -15,7 +15,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Se muestran en Ajustes → Acerca de. Súbelos a mano en cada versión.
-const VERSION_APP = "2.0";
+const VERSION_APP = "2.1";
 const ULTIMA_ACTUALIZACION = "5 de octubre de 2026";
 
 const DIA_MS = 86_400_000;
@@ -519,7 +519,7 @@ async function eliminarTarea() {
 
 /* ── Pestañas: Tareas / Compras / Kits ── */
 function mostrarVista(cual) {
-  const vistas = ["tareas", "compras", "kits"];
+  const vistas = ["tareas", "compras", "kits", "plata"];
   if (!vistas.includes(cual)) cual = "tareas";
   for (const v of vistas) {
     $(`#vista-${v}`).hidden = v !== cual;
@@ -1963,8 +1963,17 @@ $("#btn-ajustes").addEventListener("click", () => {
     $("#estado-notificaciones").textContent =
       "✓ Este teléfono recibirá avisos cuando algo esté vencido.";
   }
+  const tema = localStorage.getItem("queJuicio.tema") || "auto";
+  $(`input[name="tema"][value="${tema}"]`).checked = true;
   $("#dialogo-ajustes").showModal();
 });
+// Apariencia: aplicarTema() vive en el <head> de index.html (corre antes de pintar).
+for (const opcion of document.querySelectorAll('input[name="tema"]')) {
+  opcion.addEventListener("change", () => {
+    localStorage.setItem("queJuicio.tema", opcion.value);
+    window.aplicarTema();
+  });
+}
 $("#btn-cerrar-ajustes").addEventListener("click", () => $("#dialogo-ajustes").close());
 $("#btn-acerca").addEventListener("click", () => {
   $("#dialogo-ajustes").close();
@@ -2004,6 +2013,9 @@ $("#btn-cancelar-item").addEventListener("click", () => $("#dialogo-kit-item").c
 $("#btn-eliminar-item").addEventListener("click", eliminarItemKitActual);
 $("#form-kit-renombrar").addEventListener("submit", (ev) => { ev.preventDefault(); renombrarKit(); });
 $("#btn-cancelar-renombrar").addEventListener("click", () => $("#dialogo-kit-renombrar").close());
+// Plata (todavía no disponible): solo el mosaico de «Acerca de» y un aviso.
+$("#tab-plata").addEventListener("click", () => mostrarVista("plata"));
+$("#vista-plata").prepend($("#dialogo-acerca .mosaico").cloneNode(true));
 $("#btn-notificaciones").addEventListener("click", activarNotificaciones);
 $("#btn-salir").addEventListener("click", () => {
   if (confirm("¿Salir del hogar en este teléfono? Las tareas siguen guardadas.")) {

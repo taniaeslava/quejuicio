@@ -69,52 +69,53 @@
   --fuente-cuerpo: "DM Sans", system-ui, sans-serif;
 }
 
-/* ── Modo oscuro «azulejo de noche» ── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --crema: #0F2233;
-    --card: #17324A;
-    --lienzo: #0B1A27;
-    --cobalto: #8DB8E0;
-    --tinta: #EEE6D8;
-    --terracota: #E2795A;
-    --terracota-text: #F0937A;
-    --muted: #B3A999;
-    --label: #B8A487;
-    --hairline: #24425C;
-    --hairline-light: #1F3C55;
-    --nav-hairline: #22405A;
-    --ring-track: #2A4A66;
-    --verde: #6FA57E;  --verde-text: #8CC29A;
-    --ambar: #D9A54A;  --ambar-text: #E5B865;
-    --gris-punteado: #4F6B84;
-    --borde-punteado: #3D5A74;
-    --nav-inactivo: #ADA28F;
+/* ── Modo oscuro «azulejo de noche» ──
+   Lo activa data-tema="noche" en <html>, que pone aplicarTema() (en el
+   <head> de index.html) según Ajustes → Apariencia: Automático sigue al
+   teléfono; Día y Noche lo fijan. */
+:root[data-tema="noche"] {
+  --crema: #0F2233;
+  --card: #17324A;
+  --lienzo: #0B1A27;
+  --cobalto: #8DB8E0;
+  --tinta: #EEE6D8;
+  --terracota: #E2795A;
+  --terracota-text: #F0937A;
+  --muted: #B3A999;
+  --label: #B8A487;
+  --hairline: #24425C;
+  --hairline-light: #1F3C55;
+  --nav-hairline: #22405A;
+  --ring-track: #2A4A66;
+  --verde: #6FA57E;  --verde-text: #8CC29A;
+  --ambar: #D9A54A;  --ambar-text: #E5B865;
+  --gris-punteado: #4F6B84;
+  --borde-punteado: #3D5A74;
+  --nav-inactivo: #ADA28F;
 
-    --sombra-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 20px -14px rgba(0, 0, 0, 0.6);
-    --sombra-dialogo: 0 30px 60px -20px rgba(0, 0, 0, 0.7);
-    --sombra-fab: 0 10px 24px -8px rgba(226, 121, 90, 0.45);
-    --navy-tint: rgba(141, 184, 224, 0.16);
-    --navy-outline: rgba(141, 184, 224, 0.40);
-    --navy-suave: rgba(141, 184, 224, 0.12);
-    --navy-overflow: rgba(141, 184, 224, 0.10);
-    --navy-presion: rgba(141, 184, 224, 0.06);
-    --navy-asa: rgba(141, 184, 224, 0.35);
-    --navy-icono-tenue: rgba(141, 184, 224, 0.50);
-    --terracota-suave: rgba(226, 121, 90, 0.18);
-    --terracota-swipe: rgba(226, 121, 90, 0.22);
-    --terracota-presion: rgba(226, 121, 90, 0.14);
-    --backdrop: rgba(5, 12, 20, 0.60);
-    --franja-fondo: #1B3850;
-    --texto-entrada: #D4CBBC;
-    --blanco: #12293D;
-    --crema-sobre-color: #0F2233;
-    --cobalto-presionado: #A9CBEA;
-    --franja-rombos: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='12'%3E%3Cpath d='M10 1 L19 6 L10 11 L1 6 Z' fill='none' stroke='%238DB8E0' stroke-width='1.4'/%3E%3Ccircle cx='10' cy='6' r='1.8' fill='%23E2795A'/%3E%3C/svg%3E");
-    --franja-flores: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='14'%3E%3Ccircle cx='7' cy='7' r='2.2' fill='%23E2795A'/%3E%3Ccircle cx='7' cy='2.6' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='7' cy='11.4' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='2.6' cy='7' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='11.4' cy='7' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='21' cy='7' r='1.2' fill='%238DB8E0' opacity='.6'/%3E%3C/svg%3E");
+  --sombra-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 20px -14px rgba(0, 0, 0, 0.6);
+  --sombra-dialogo: 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+  --sombra-fab: 0 10px 24px -8px rgba(226, 121, 90, 0.45);
+  --navy-tint: rgba(141, 184, 224, 0.16);
+  --navy-outline: rgba(141, 184, 224, 0.40);
+  --navy-suave: rgba(141, 184, 224, 0.12);
+  --navy-overflow: rgba(141, 184, 224, 0.10);
+  --navy-presion: rgba(141, 184, 224, 0.06);
+  --navy-asa: rgba(141, 184, 224, 0.35);
+  --navy-icono-tenue: rgba(141, 184, 224, 0.50);
+  --terracota-suave: rgba(226, 121, 90, 0.18);
+  --terracota-swipe: rgba(226, 121, 90, 0.22);
+  --terracota-presion: rgba(226, 121, 90, 0.14);
+  --backdrop: rgba(5, 12, 20, 0.60);
+  --franja-fondo: #1B3850;
+  --texto-entrada: #D4CBBC;
+  --blanco: #12293D;
+  --crema-sobre-color: #0F2233;
+  --cobalto-presionado: #A9CBEA;
+  --franja-rombos: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='12'%3E%3Cpath d='M10 1 L19 6 L10 11 L1 6 Z' fill='none' stroke='%238DB8E0' stroke-width='1.4'/%3E%3Ccircle cx='10' cy='6' r='1.8' fill='%23E2795A'/%3E%3C/svg%3E");
+  --franja-flores: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='14'%3E%3Ccircle cx='7' cy='7' r='2.2' fill='%23E2795A'/%3E%3Ccircle cx='7' cy='2.6' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='7' cy='11.4' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='2.6' cy='7' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='11.4' cy='7' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='21' cy='7' r='1.2' fill='%238DB8E0' opacity='.6'/%3E%3C/svg%3E");
 
-    color-scheme: dark;
-  }
+  color-scheme: dark;
 }
 
 /* ── Íconos de trazo (reemplazan los glifos ✓ ＋ ⠿ ✎ ‹ ⬇ ✕) ── */
@@ -509,6 +510,21 @@ dialog input, dialog select, .entrada-form input {
 }
 input:focus, select:focus, button:focus-visible { outline: 2px solid var(--cobalto); outline-offset: 1px; }
 .fila-frecuencia { display: grid; grid-template-columns: 1fr 1.4fr; gap: 0.6rem; }
+
+/* Ajustes → Apariencia: Automático / Día / Noche (ícono arriba, como las pestañas) */
+.selector-tema {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  background: var(--navy-suave); border-radius: 16px; padding: 4px;
+}
+.selector-tema label {
+  margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 0.55rem 0.25rem; border-radius: 12px;
+  font-size: 0.85rem; font-weight: 500; color: var(--cobalto); cursor: pointer;
+}
+.selector-tema .ico { font-size: 1.15rem; }
+.selector-tema input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.selector-tema label:has(input:checked) { background: var(--cobalto); color: var(--crema-sobre-color); font-weight: 700; }
+.selector-tema label:has(input:focus-visible) { outline: 2px solid var(--cobalto); outline-offset: 1px; }
 .dialogo-acciones { display: flex; align-items: center; gap: 0.5rem; margin-top: 1.4rem; }
 .separador-flexible { flex: 1; }
 
@@ -665,8 +681,9 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
 .btn-hecha .ico { position: relative; z-index: 1; }
 
 /* ── Acerca de QueJuicio (se abre desde Ajustes) ──
-   El mosaico de azulejos vive SOLO aquí. Colores fijos de marca, como el
-   logo; la baldosa oscura se aclara de noche para no perderse. */
+   El mosaico de azulejos vive SOLO aquí y en la pestaña Plata (que lo copia
+   de aquí). Colores fijos de marca, como el logo; la baldosa oscura se
+   aclara de noche para no perderse. */
 .mosaico { display: block; width: 100%; height: auto; margin-bottom: 1.1rem; }
 .mosaico .m-cob { fill: var(--logo-azul); }
 .mosaico .m-ter { fill: var(--logo-estrella); }
@@ -674,7 +691,7 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
 .mosaico .m-tin { fill: var(--mosaico-tinta, #16344D); }
 .mosaico .m-fra { fill: #F1E6D4; }
 .mosaico .m-cre { fill: var(--logo-crema); }
-@media (prefers-color-scheme: dark) { :root { --mosaico-tinta: #2A4A66; } }
+:root[data-tema="noche"] { --mosaico-tinta: #2A4A66; }
 .acerca-nombre { font-size: 2rem; letter-spacing: -0.01em; margin: 0; line-height: 1.1; }
 .acerca-lema { color: var(--texto-entrada); margin: 0.25rem 0 0.9rem; }
 .dialogo-acerca p { margin: 0 0 0.7rem; }
@@ -682,3 +699,9 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
 .acerca-version { font-size: 13px; color: var(--muted); line-height: 1.6; }
 .acerca-firma { font-family: var(--fuente-display); font-style: italic; font-weight: 500; color: var(--terracota-text); margin-top: 1rem !important; }
 #btn-acerca { margin-top: 1rem; }
+
+/* ── Plata (todavía no disponible): el mosaico y un aviso ── */
+.proximamente { text-align: center; padding: 1.5rem 0 1rem; }
+.proximamente .mosaico { max-width: 22rem; margin: 0 auto 1.4rem; }
+.proximamente-titulo { font-size: 1.6rem; color: var(--cobalto); margin: 0; }
+.proximamente-texto { color: var(--texto-entrada); margin: 0.35rem 0 0; }

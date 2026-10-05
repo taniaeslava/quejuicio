@@ -50,6 +50,8 @@ teléfonos a la misma información.
 ## Las tres secciones
 
 Abajo de la pantalla hay tres pestañas: **Tareas**, **Compras** y **Kits**.
+Al lado hay una cuarta, **Plata**, que todavía está en camino: por ahora solo
+muestra el mosaico de azulejos y avisa que estará disponible pronto.
 
 ### 📋 Tareas
 
