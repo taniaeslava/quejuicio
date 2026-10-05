@@ -143,7 +143,8 @@ Refresh visual (julio 2026): azulejo más calmado, superficies con sombra en vez
 de bordes. Todos los tokens están en `:root` — úsalos, no inventes colores.
 
 - Fondo `#FBF6EE`; superficie de tarjeta `#FFFDF9`; navy principal `#1E4B73`;
-  texto `#16344D`; terracota `#C25A38`; meta `#9A9082`; etiquetas `#A08D74`.
+  texto `#16344D`; terracota `#C25A38`; meta `#786E61`; etiquetas `#7E6D56` (oscurecidos en oct 2026 para
+  contraste AA 4.5:1 — no volver a aclararlos).
   Anillos: verde `#4F7A5B` (lejos), ámbar `#C08A2E` (≤7 días), terracota
   (vencida).
 - Fuentes: **Lora** (600) para la marca y los nombres de tienda; **DM Sans**
@@ -151,8 +152,28 @@ de bordes. Todos los tokens están en `:root` — úsalos, no inventes colores.
   etiquetas de sección.
 - Patrones clave: tarjeta por grupo (`.grupo-card`, `.tienda`) sin borde y con
   `--sombra-card`; filas separadas por finas líneas internas (pseudo `::before`);
-  franja de azulejo delgada `.tile-band`; anillo conic-gradient con disco
+  franjas de azulejo `.tile-band` (cenefa de rombos: cabecera y entrada) y `.tile-band-fina` (florecitas: títulos de diálogo), con los SVG en `--franja-rombos` / `--franja-flores` (el modo oscuro los redefine); anillo conic-gradient con disco
   interior; el logo (baldosa con estrella) se mantiene igual, es SVG inline.
+- **Íconos:** nada de glifos de texto (✓ ＋ ⠿ ✎ ‹ ⬇ ✕) en controles; usa
+  `icono("check" | "mas" | "editar" | "atras" | "bajar" | "cerrar" | "asa")`
+  de app.js (SVG de trazo, `currentColor`, estilo de las pestañas). En el HTML
+  estático, el mismo SVG con `class="ico"`.
+- **Modo oscuro «azulejo de noche»:** `@media (prefers-color-scheme: dark)`
+  redefine los tokens de `:root`. Por eso NO pongas colores fijos en el CSS ni
+  en el JS: todo por variable (p. ej. el anillo toma su color de la clase
+  fresca/pronto/vencida, no de un hex en app.js). El logo usa `--logo-*`, que
+  no cambian con el tema.
+- **Logros:** la estrella del logo (`estrella()` en app.js) marca «Todo al
+  día» y los kits completos.
+- **Mosaico de azulejos:** solo en el diálogo «Acerca de QueJuicio» (Ajustes →
+  Acerca de). Se probó en la entrada y el estado vacío y no funcionó: no lo
+  saques de ahí.
+- **Versión:** al publicar cambios, sube `VERSION_APP` y `ULTIMA_ACTUALIZACION`
+  al inicio de app.js (se muestran en «Acerca de»).
+- Tareas: grupo «YA TOCA» arriba con las vencidas; al marcar «hecha» el
+  anillo se vacía y vuelve a verde (`@property --pct`) y las filas se
+  reacomodan con animación (FLIP en `pintarLista`). Respeta
+  `prefers-reduced-motion`.
 - Las asas de arrastre (⠿) están siempre visibles pero discretas (30% de
   opacidad). Antes había un "modo reordenar" que las escondía; se quitó porque
   nadie lo encontraba.

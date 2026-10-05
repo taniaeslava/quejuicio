@@ -2,7 +2,12 @@
    Azulejo más calmado: superficies cálidas con sombra suave (sin
    bordes), una tarjeta por grupo, Lora para marca/tiendas + DM Sans
    para el resto, anillos con significado y franja de azulejo delgada.
-   El logo (baldosa con estrella) se mantiene tal cual. */
+   El logo (baldosa con estrella) se mantiene tal cual.
+   Oct 2026: muted, label, nav-inactivo y ambar-text oscurecidos para
+   llegar a 4.5:1 de contraste (WCAG AA); botón peligro con terracota-text.
+   Oct 2026 (2): íconos SVG en vez de glifos, animación al marcar «hecha»,
+   grupo «YA TOCA», kits completos con estrella y modo oscuro «azulejo de
+   noche» (todos los colores pasan por variables de :root). */
 
 :root {
   /* superficies */
@@ -17,25 +22,110 @@
   --terracota-text: #A9482A;
 
   /* semánticos */
-  --muted: #9A9082;          /* meta/secundario */
-  --label: #A08D74;          /* etiquetas de sección / terciario */
+  --muted: #786E61;          /* meta/secundario */
+  --label: #7E6D56;          /* etiquetas de sección / terciario */
   --hairline: #F0E8DA;
   --hairline-light: #F5EFE4;
   --nav-hairline: #EFE4D2;
   --ring-track: #EFE6D6;
   --verde: #4F7A5B;  --verde-text: #3E6349;
-  --ambar: #C08A2E;  --ambar-text: #9A6F1E;
+  --ambar: #C08A2E;  --ambar-text: #91691C;
   --gris-punteado: #CFC3AE;
   --borde-punteado: #D8CBB5;
-  --nav-inactivo: #A69A88;
+  --nav-inactivo: #7B6E5C;
 
   --sombra-card: 0 1px 2px rgba(30, 50, 70, 0.06), 0 8px 20px -14px rgba(30, 50, 70, 0.28);
+  --sombra-dialogo: 0 30px 60px -20px rgba(30, 50, 70, 0.45);
+  --sombra-fab: 0 10px 24px -8px rgba(194, 90, 56, 0.65);
   --navy-tint: rgba(30, 75, 115, 0.10);
   --navy-outline: rgba(30, 75, 115, 0.28);
+  --navy-suave: rgba(30, 75, 115, 0.08);
+  --navy-overflow: rgba(30, 75, 115, 0.06);
+  --navy-presion: rgba(30, 75, 115, 0.03);
+  --navy-asa: rgba(30, 75, 115, 0.30);
+  --navy-icono-tenue: rgba(30, 75, 115, 0.40);
+  --terracota-suave: rgba(194, 90, 56, 0.12);
+  --terracota-swipe: rgba(194, 90, 56, 0.14);
+  --terracota-presion: rgba(194, 90, 56, 0.10);
+  --backdrop: rgba(22, 52, 77, 0.40);
+  --franja-fondo: #F1E6D4;
+  --texto-entrada: #5C5346;
+  --blanco: #FFFFFF;                 /* fondo de inputs y botón secundario */
+  --crema-sobre-color: #FFF6EE;      /* texto sobre cobalto / terracota */
+  --cobalto-presionado: #173C5E;
+
+  /* el logo NO cambia con el tema */
+  --logo-azul: #1E4B73;
+  --logo-crema: #FBF6EE;
+  --logo-estrella: #C25A38;
+
+  /* franjas: rombos (cabecera) y florecitas (títulos de diálogo) */
+  --franja-rombos: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='12'%3E%3Cpath d='M10 1 L19 6 L10 11 L1 6 Z' fill='none' stroke='%231E4B73' stroke-width='1.4'/%3E%3Ccircle cx='10' cy='6' r='1.8' fill='%23C25A38'/%3E%3C/svg%3E");
+  --franja-flores: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='14'%3E%3Ccircle cx='7' cy='7' r='2.2' fill='%23C25A38'/%3E%3Ccircle cx='7' cy='2.6' r='2' fill='%231E4B73'/%3E%3Ccircle cx='7' cy='11.4' r='2' fill='%231E4B73'/%3E%3Ccircle cx='2.6' cy='7' r='2' fill='%231E4B73'/%3E%3Ccircle cx='11.4' cy='7' r='2' fill='%231E4B73'/%3E%3Ccircle cx='21' cy='7' r='1.2' fill='%231E4B73' opacity='.5'/%3E%3C/svg%3E");
+
+  color-scheme: light;
 
   --fuente-display: "Lora", Georgia, serif;
   --fuente-cuerpo: "DM Sans", system-ui, sans-serif;
 }
+
+/* ── Modo oscuro «azulejo de noche» ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --crema: #0F2233;
+    --card: #17324A;
+    --lienzo: #0B1A27;
+    --cobalto: #8DB8E0;
+    --tinta: #EEE6D8;
+    --terracota: #E2795A;
+    --terracota-text: #F0937A;
+    --muted: #B3A999;
+    --label: #B8A487;
+    --hairline: #24425C;
+    --hairline-light: #1F3C55;
+    --nav-hairline: #22405A;
+    --ring-track: #2A4A66;
+    --verde: #6FA57E;  --verde-text: #8CC29A;
+    --ambar: #D9A54A;  --ambar-text: #E5B865;
+    --gris-punteado: #4F6B84;
+    --borde-punteado: #3D5A74;
+    --nav-inactivo: #ADA28F;
+
+    --sombra-card: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 20px -14px rgba(0, 0, 0, 0.6);
+    --sombra-dialogo: 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+    --sombra-fab: 0 10px 24px -8px rgba(226, 121, 90, 0.45);
+    --navy-tint: rgba(141, 184, 224, 0.16);
+    --navy-outline: rgba(141, 184, 224, 0.40);
+    --navy-suave: rgba(141, 184, 224, 0.12);
+    --navy-overflow: rgba(141, 184, 224, 0.10);
+    --navy-presion: rgba(141, 184, 224, 0.06);
+    --navy-asa: rgba(141, 184, 224, 0.35);
+    --navy-icono-tenue: rgba(141, 184, 224, 0.50);
+    --terracota-suave: rgba(226, 121, 90, 0.18);
+    --terracota-swipe: rgba(226, 121, 90, 0.22);
+    --terracota-presion: rgba(226, 121, 90, 0.14);
+    --backdrop: rgba(5, 12, 20, 0.60);
+    --franja-fondo: #1B3850;
+    --texto-entrada: #D4CBBC;
+    --blanco: #12293D;
+    --crema-sobre-color: #0F2233;
+    --cobalto-presionado: #A9CBEA;
+    --franja-rombos: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='12'%3E%3Cpath d='M10 1 L19 6 L10 11 L1 6 Z' fill='none' stroke='%238DB8E0' stroke-width='1.4'/%3E%3Ccircle cx='10' cy='6' r='1.8' fill='%23E2795A'/%3E%3C/svg%3E");
+    --franja-flores: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='14'%3E%3Ccircle cx='7' cy='7' r='2.2' fill='%23E2795A'/%3E%3Ccircle cx='7' cy='2.6' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='7' cy='11.4' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='2.6' cy='7' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='11.4' cy='7' r='2' fill='%238DB8E0'/%3E%3Ccircle cx='21' cy='7' r='1.2' fill='%238DB8E0' opacity='.6'/%3E%3C/svg%3E");
+
+    color-scheme: dark;
+  }
+}
+
+/* ── Íconos de trazo (reemplazan los glifos ✓ ＋ ⠿ ✎ ‹ ⬇ ✕) ── */
+.ico {
+  width: 1em; height: 1em; flex: none;
+  display: inline-block; vertical-align: -0.14em;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.ico-relleno { fill: currentColor; stroke: none; }
+.con-ico { display: inline-flex; align-items: center; justify-content: center; gap: 0.45em; }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -57,18 +147,21 @@ h1, h2, h3 { font-family: var(--fuente-display); margin: 0 0 0.35em; font-weight
 .marca { width: 34px; height: 34px; flex: none; }
 .marca-grande { width: 76px; height: 76px; margin: 0 auto 0.6rem; display: block; }
 
-/* ── Franja de azulejo (acento delgado) ── */
+/* ── Franjas de azulejo (oct 2026) ──
+   Cabecera: cenefa de rombos navy con punto terracota (.tile-band).
+   Títulos de diálogo: florecitas de cuatro pétalos (.tile-band-fina).
+   Los SVG viven en --franja-rombos / --franja-flores y el modo oscuro los
+   redefine con azul claro y terracota claro para que contrasten. */
 .tile-band {
-  height: 10px;
+  height: 12px;
   margin: 0.2rem 0 1.1rem;
-  border-radius: 6px;
-  opacity: 0.5;
-  background:
-    repeating-linear-gradient(135deg, var(--terracota) 0 5px, transparent 5px 10px),
-    repeating-linear-gradient(45deg, var(--cobalto) 0 5px, transparent 5px 10px);
-  background-color: #F1E6D4;
+  background: var(--franja-rombos) repeat-x left center;
 }
-.tile-band-fina { height: 6px; margin: 0.1rem 0 1.1rem; }
+.tile-band-fina {
+  height: 14px;
+  margin: 0.1rem 0 1.1rem;
+  background: var(--franja-flores) repeat-x left center;
+}
 
 /* ── Pantalla de entrada ── */
 .pantalla-entrada { min-height: 100dvh; display: grid; place-items: center; padding: 1.5rem; }
@@ -88,7 +181,7 @@ h1, h2, h3 { font-family: var(--fuente-display); margin: 0 0 0.35em; font-weight
   letter-spacing: -0.01em;
   color: var(--cobalto);
 }
-.entrada-texto { text-align: left; color: #5C5346; }
+.entrada-texto { text-align: left; color: var(--texto-entrada); }
 .entrada-form { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 1rem; }
 .entrada-nota, .nota { font-size: 0.82rem; color: var(--muted); text-align: left; }
 
@@ -108,7 +201,7 @@ h1, h2, h3 { font-family: var(--fuente-display); margin: 0 0 0.35em; font-weight
   width: 34px; height: 34px;
   border: none;
   border-radius: 50%;
-  background: rgba(30, 75, 115, 0.06);
+  background: var(--navy-overflow);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   cursor: pointer;
   flex: none;
@@ -143,7 +236,7 @@ main { padding: 0 20px calc(6.5rem + env(safe-area-inset-bottom)); max-width: 34
   position: relative;
   cursor: pointer;
 }
-.fila:active { background: rgba(30, 75, 115, 0.03); }
+.fila:active { background: var(--navy-presion); }
 .fila:not(:first-child)::before {
   content: ""; position: absolute; left: 64px; right: 0; top: 0;
   height: 1px; background: var(--hairline);
@@ -238,13 +331,13 @@ main { padding: 0 20px calc(6.5rem + env(safe-area-inset-bottom)); max-width: 34
 .tienda-conteo {
   min-width: 22px; height: 22px; padding: 0 7px;
   border-radius: 999px;
-  background: rgba(194, 90, 56, 0.12);
+  background: var(--terracota-suave);
   color: var(--terracota-text);
   font-size: 12px; font-weight: 700;
   display: grid; place-items: center;
 }
 .tienda-vacia-etq { font-size: 12px; color: var(--label); }
-.tienda-eliminar { flex: none; color: rgba(30, 75, 115, 0.35); font-size: 0.95rem; padding: 0 0.2rem; cursor: pointer; }
+.tienda-eliminar { flex: none; color: var(--navy-icono-tenue); font-size: 0.95rem; padding: 0 0.2rem; cursor: pointer; display: grid; place-items: center; }
 
 .tienda-cuerpo { }
 .divisor-tienda { height: 1px; background: var(--hairline); margin: 0 16px; }
@@ -260,8 +353,8 @@ main { padding: 0 20px calc(6.5rem + env(safe-area-inset-bottom)); max-width: 34
   content: ""; position: absolute; left: 50px; right: 0; top: 0;
   height: 1px; background: var(--hairline-light);
 }
-.item.swipe-borrar { background: rgba(194, 90, 56, 0.14); }
-.item.arrastrando { opacity: 0.6; background: rgba(30, 75, 115, 0.06); }
+.item.swipe-borrar { background: var(--terracota-swipe); }
+.item.arrastrando { opacity: 0.6; background: var(--navy-overflow); }
 
 .item label { display: flex; align-items: center; gap: 13px; flex: 1; min-width: 0; cursor: pointer; }
 .item input[type="checkbox"] {
@@ -307,7 +400,7 @@ main { padding: 0 20px calc(6.5rem + env(safe-area-inset-bottom)); max-width: 34
    reordena artículos y tiendas; el resto de la fila no se mueve. */
 .item-grip, .tienda-grip {
   display: grid; place-items: center; flex: none;
-  color: rgba(30, 75, 115, 0.3); font-size: 1.15rem; cursor: grab;
+  color: var(--navy-asa); font-size: 1.15rem; cursor: grab;
   touch-action: none; padding: 0 0.15rem;
 }
 /* En Compras la fila arranca más a la derecha (por el asa): la línea fina
@@ -327,7 +420,7 @@ main { padding: 0 20px calc(6.5rem + env(safe-area-inset-bottom)); max-width: 34
 .input-item::placeholder { color: var(--label); }
 .sugerencias { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0 16px 12px; }
 .sugerencia {
-  background: rgba(30, 75, 115, 0.08);
+  background: var(--navy-suave);
   border: none; border-radius: 999px;
   padding: 0.3rem 0.7rem;
   font: inherit; font-size: 0.85rem; color: var(--cobalto);
@@ -360,9 +453,10 @@ main { padding: 0 20px calc(6.5rem + env(safe-area-inset-bottom)); max-width: 34
   border-radius: 20px;
   border: none;
   background: var(--terracota);
-  color: #FFF6EE;
+  color: var(--crema-sobre-color);
   font-size: 26px; line-height: 1;
-  box-shadow: 0 10px 24px -8px rgba(194, 90, 56, 0.65);
+  display: grid; place-items: center;
+  box-shadow: var(--sombra-fab);
   cursor: pointer;
 }
 .fab:active { transform: scale(0.96); }
@@ -398,17 +492,17 @@ dialog {
   border-radius: 20px;
   background: var(--card);
   color: var(--tinta);
-  box-shadow: 0 30px 60px -20px rgba(30, 50, 70, 0.45);
+  box-shadow: var(--sombra-dialogo);
   width: min(92vw, 26rem);
   padding: 1.4rem 1.3rem;
 }
-dialog::backdrop { background: rgba(22, 52, 77, 0.4); }
+dialog::backdrop { background: var(--backdrop); }
 dialog h2 { font-family: var(--fuente-display); color: var(--cobalto); }
 dialog h3 { font-size: 0.95rem; color: var(--label); text-transform: none; margin-top: 1.2rem; }
 dialog label { display: block; font-weight: 500; font-size: 0.88rem; margin: 0.9rem 0 0.3rem; }
 dialog input, dialog select, .entrada-form input {
   width: 100%; font: inherit; color: var(--tinta);
-  background: #fff;
+  background: var(--blanco);
   border: 1px solid var(--hairline);
   border-radius: 12px;
   padding: 0.65rem 0.75rem;
@@ -423,13 +517,13 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--cobal
   font: inherit; font-weight: 500;
   border: 1px solid var(--hairline);
   border-radius: 12px;
-  background: #fff; color: var(--tinta);
+  background: var(--blanco); color: var(--tinta);
   padding: 0.65rem 1rem; cursor: pointer;
 }
-.btn-primario { background: var(--cobalto); border-color: var(--cobalto); color: #FFF6EE; }
-.btn-primario:active { background: #173c5e; }
-.btn-peligro { background: none; border-color: var(--terracota); color: var(--terracota); }
-.btn-peligro:active { background: rgba(194, 90, 56, 0.1); }
+.btn-primario { background: var(--cobalto); border-color: var(--cobalto); color: var(--crema-sobre-color); }
+.btn-primario:active { background: var(--cobalto-presionado); }
+.btn-peligro { background: none; border-color: var(--terracota); color: var(--terracota-text); }
+.btn-peligro:active { background: var(--terracota-presion); }
 
 code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padding: 0.1em 0.4em; }
 
@@ -445,7 +539,7 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
   display: flex; align-items: center; gap: 0.8rem;
 }
 .toast-accion {
-  background: none; border: 1px solid rgba(251, 246, 238, 0.5);
+  background: none; border: 1px solid var(--crema);
   color: var(--crema); font: inherit; font-weight: 600;
   border-radius: 8px; padding: 0.25rem 0.6rem; cursor: pointer; flex: none;
 }
@@ -489,7 +583,8 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
 /* ítem de kit: reusa el look de .item, con botón de editar */
 .kit-item .item-editar {
   background: none; border: none; flex: none;
-  color: rgba(30, 75, 115, 0.4); font-size: 1rem; cursor: pointer;
+  color: var(--navy-icono-tenue); font-size: 1rem; cursor: pointer;
+  display: grid; place-items: center;
   padding: 0 0.3rem;
 }
 .kit-item input[type="checkbox"]:checked + span { color: var(--muted); text-decoration: line-through; }
@@ -500,10 +595,90 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
 /* chips de plantilla en el diálogo de nuevo kit */
 .chips-plantilla { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.4rem; }
 .chip-plantilla {
-  background: rgba(30, 75, 115, 0.08);
+  background: var(--navy-suave);
   border: none; border-radius: 999px;
   padding: 0.5rem 0.9rem;
   font: inherit; font-size: 0.9rem; font-weight: 500; color: var(--cobalto);
   cursor: pointer;
 }
 .chip-plantilla:active { background: var(--navy-tint); }
+
+/* ── Marcar «hecha»: el anillo se vacía y vuelve a verde ── */
+@property --pct { syntax: "<number>"; inherits: false; initial-value: 0; }
+.anillo:not(.unica) {
+  background: conic-gradient(var(--anillo-color, var(--verde)) 0 calc(var(--pct) * 1%), var(--ring-track) 0 100%);
+  transition: --pct 0.45s ease;
+}
+.anillo.fresca  { --anillo-color: var(--verde); }
+.anillo.pronto  { --anillo-color: var(--ambar); }
+.anillo.vencida { --anillo-color: var(--terracota); }
+.fila.hecha-anim .anillo { --anillo-color: var(--verde); }
+.fila.hecha-anim .anillo-disco { color: var(--verde-text); }
+.btn-hecha .ico { font-size: 16px; stroke-width: 2.4; }
+.btn-hecha.hecho::before { background: var(--cobalto); border-color: var(--cobalto); transition: background 0.15s ease; }
+.btn-hecha.hecho { color: var(--crema-sobre-color); }
+.fila.saliendo { animation: fila-sale 0.38s ease forwards; }
+@keyframes fila-sale { to { opacity: 0; transform: translateX(24px); } }
+
+/* ── Grupo «YA TOCA» ── */
+.grupo-urgente .grupo-label .etq { color: var(--terracota-text); }
+.grupo-urgente .grupo-label .cuenta {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: var(--terracota-suave); color: var(--terracota-text);
+  font-weight: 700; display: grid; place-items: center;
+}
+
+/* ── «Todo al día» ── */
+.al-dia {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card); border-radius: 18px; box-shadow: var(--sombra-card);
+  padding: 14px 16px; margin-bottom: 26px;
+}
+.al-dia .estrella { width: 34px; height: 34px; flex: none; }
+.al-dia-titulo { font-family: var(--fuente-display); font-size: 18px; font-weight: 600; color: var(--cobalto); }
+.al-dia-meta { font-size: 13px; color: var(--muted); margin-top: 1px; }
+
+/* ── Estrella (la del logo) para logros ── */
+.estrella path { fill: var(--logo-estrella); }
+.estrella circle { fill: var(--logo-azul); }
+.kit-card-nombre, .kit-titulo { display: flex; align-items: center; gap: 8px; }
+.kit-card-nombre .estrella { width: 18px; height: 18px; flex: none; }
+.kit-titulo .estrella { width: 24px; height: 24px; flex: none; }
+.kit-card.completo .kit-card-prog, .kit-progreso.completo { color: var(--verde-text); font-weight: 500; }
+.estrella.pop { animation: estrella-pop 0.6s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes estrella-pop { from { transform: scale(0) rotate(-45deg); } to { transform: scale(1) rotate(0); } }
+
+/* ── Íconos en botones ── */
+.fab .ico { font-size: 26px; stroke-width: 2.2; }
+.kit-volver { display: inline-flex; align-items: center; gap: 2px; }
+.kit-volver .ico { font-size: 18px; margin-left: -4px; }
+.add-plus { display: grid; place-items: center; }
+.add-plus .ico { font-size: 16px; }
+.item-grip .ico, .tienda-grip .ico { font-size: 18px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .anillo:not(.unica) { transition: none; }
+  .fila.saliendo, .estrella.pop { animation: none; }
+}
+
+/* El ✓ queda encima del círculo relleno al marcar «hecha». */
+.btn-hecha .ico { position: relative; z-index: 1; }
+
+/* ── Acerca de QueJuicio (se abre desde Ajustes) ──
+   El mosaico de azulejos vive SOLO aquí. Colores fijos de marca, como el
+   logo; la baldosa oscura se aclara de noche para no perderse. */
+.mosaico { display: block; width: 100%; height: auto; margin-bottom: 1.1rem; }
+.mosaico .m-cob { fill: var(--logo-azul); }
+.mosaico .m-ter { fill: var(--logo-estrella); }
+.mosaico .m-ver { fill: #4F7A5B; }
+.mosaico .m-tin { fill: var(--mosaico-tinta, #16344D); }
+.mosaico .m-fra { fill: #F1E6D4; }
+.mosaico .m-cre { fill: var(--logo-crema); }
+@media (prefers-color-scheme: dark) { :root { --mosaico-tinta: #2A4A66; } }
+.acerca-nombre { font-size: 2rem; letter-spacing: -0.01em; margin: 0; line-height: 1.1; }
+.acerca-lema { color: var(--texto-entrada); margin: 0.25rem 0 0.9rem; }
+.dialogo-acerca p { margin: 0 0 0.7rem; }
+.dialogo-acerca { text-align: center; }
+.acerca-version { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.acerca-firma { font-family: var(--fuente-display); font-style: italic; font-weight: 500; color: var(--terracota-text); margin-top: 1rem !important; }
+#btn-acerca { margin-top: 1rem; }

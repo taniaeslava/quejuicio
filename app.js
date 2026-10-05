@@ -14,9 +14,44 @@ import { firebaseConfig, VAPID_KEY } from "./config.js";
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Se muestran en Ajustes → Acerca de. Súbelos a mano en cada versión.
+const VERSION_APP = "2.0";
+const ULTIMA_ACTUALIZACION = "5 de octubre de 2026";
+
 const DIA_MS = 86_400_000;
 const HISTORIAL_MAX = 10;
 const $ = (sel) => document.querySelector(sel);
+const sinMovimiento = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* ── Íconos de trazo (mismo estilo que las pestañas). Reemplazan los
+   glifos de texto ✓ ＋ ⠿ ✎ ‹ ⬇ ✕, que cada teléfono dibujaba distinto. ── */
+const ICONOS = {
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  mas: '<path d="M12 5v14M5 12h14"/>',
+  editar: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  atras: '<path d="m15 18-6-6 6-6"/>',
+  bajar: '<path d="M12 4v12"/><path d="m6 11 6 6 6-6"/><path d="M5 20h14"/>',
+  cerrar: '<path d="M18 6 6 18M6 6l12 12"/>',
+  asa: '<g class="ico-relleno"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></g>',
+};
+function icono(nombre) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "ico");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = ICONOS[nombre];
+  return svg;
+}
+// La estrella del logo, sola: se usa para logros (todo al día, kit completo).
+function estrella(animar = false) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "20 20 60 60");
+  svg.setAttribute("class", "estrella" + (animar && !sinMovimiento() ? " pop" : ""));
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = '<path d="M50 25 L58 42 L75 50 L58 58 L50 75 L42 58 L25 50 L42 42 Z"/><circle cx="50" cy="50" r="6"/>';
+  return svg;
+}
 
 let codigoHogar = localStorage.getItem("queJuicio.hogar") || "";
 let tareas = [];
@@ -199,15 +234,55 @@ function pintarLista() {
     .filter((t) => !t.once)
     .sort((a, b) => taskStatus(b, ahora).ratio - taskStatus(a, ahora).ratio);
 
+  const vencidas = recurrentes.filter((t) => taskStatus(t, ahora).estado === "vencida");
+  const alDia = recurrentes.filter((t) => taskStatus(t, ahora).estado !== "vencida");
+
+  // FLIP: recordar dónde estaba cada fila para animar su nuevo lugar.
+  const antes = new Map();
+  for (const f of cont.querySelectorAll(".fila[data-id]")) antes.set(f.dataset.id, f.getBoundingClientRect().top);
+
   cont.replaceChildren();
+  if (vencidas.length) cont.append(grupoTareas("YA TOCA", vencidas, ahora, "grupo-urgente"));
+  else if (alDia.length) cont.append(tarjetaAlDia(alDia[0], ahora));
   if (unicas.length) cont.append(grupoTareas("UNA SOLA VEZ", unicas, ahora));
-  if (recurrentes.length) cont.append(grupoTareas("RECURRENTES", recurrentes, ahora));
+  if (alDia.length) cont.append(grupoTareas("RECURRENTES", alDia, ahora));
   $("#estado-vacio").hidden = tareas.length > 0;
+
+  if (antes.size && !sinMovimiento()) {
+    for (const f of cont.querySelectorAll(".fila[data-id]")) {
+      const y0 = antes.get(f.dataset.id);
+      if (y0 === undefined) continue;
+      const dy = y0 - f.getBoundingClientRect().top;
+      if (Math.abs(dy) > 2) {
+        f.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }],
+          { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)" });
+      }
+    }
+  }
 }
 
-function grupoTareas(etiqueta, items, ahora) {
+// Sin nada vencido: un pequeño premio con la estrella del logo.
+function tarjetaAlDia(proxima, ahora) {
+  const { diasRestantes } = taskStatus(proxima, ahora);
+  const card = document.createElement("div");
+  card.className = "al-dia";
+  const txt = document.createElement("div");
+  const t = document.createElement("div");
+  t.className = "al-dia-titulo";
+  t.textContent = "Todo al día";
+  const m = document.createElement("div");
+  m.className = "al-dia-meta";
+  m.textContent = diasRestantes <= 1
+    ? `Lo próximo: «${proxima.name}», mañana`
+    : `Lo próximo: «${proxima.name}» en ${diasRestantes} días`;
+  txt.append(t, m);
+  card.append(estrella(), txt);
+  return card;
+}
+
+function grupoTareas(etiqueta, items, ahora, claseExtra = "") {
   const grupo = document.createElement("div");
-  grupo.className = "grupo";
+  grupo.className = "grupo" + (claseExtra ? ` ${claseExtra}` : "");
   const head = document.createElement("div");
   head.className = "grupo-label";
   const etq = document.createElement("span");
@@ -228,15 +303,15 @@ function filaDeTarea(tarea, ahora) {
   const { ratio, diasRestantes, estado } = taskStatus(tarea, ahora);
   const fila = document.createElement("div");
   fila.className = "fila";
+  fila.dataset.id = tarea.id;
 
   // Anillo: conic-gradient que se llena con lo transcurrido; punteado en las
   // de una sola vez. Verde (lejos) → ámbar (≤7 días) → terracota (vencida).
   const anillo = document.createElement("div");
   anillo.className = `anillo ${estado}`;
   if (estado !== "unica") {
-    const color = estado === "vencida" ? "#C25A38" : estado === "pronto" ? "#C08A2E" : "#4F7A5B";
-    const pct = Math.round(Math.min(ratio, 1) * 100);
-    anillo.style.background = `conic-gradient(${color} 0 ${pct}%, var(--ring-track) ${pct}% 100%)`;
+    // El color sale de la clase (fresca/pronto/vencida) → sigue al tema.
+    anillo.style.setProperty("--pct", String(Math.round(Math.min(ratio, 1) * 100)));
   }
   const disco = document.createElement("div");
   disco.className = "anillo-disco";
@@ -257,10 +332,10 @@ function filaDeTarea(tarea, ahora) {
   check.type = "button";
   check.className = "btn-hecha";
   check.setAttribute("aria-label", `Marcar «${tarea.name}» como hecha`);
-  check.textContent = "✓";
+  check.append(icono("check"));
   check.addEventListener("click", (ev) => {
     ev.stopPropagation();
-    marcarHecha(tarea);
+    marcarHecha(tarea, fila);
   });
 
   fila.append(anillo, cuerpo, check);
@@ -307,7 +382,22 @@ function fechaCorta(ts) {
 }
 
 /* ── Acciones sobre tareas ── */
-async function marcarHecha(tarea) {
+async function marcarHecha(tarea, fila = null) {
+  // Primero la animación (el anillo se vacía y vuelve a verde; las de una
+  // sola vez se deslizan fuera) y después se escribe en Firestore.
+  if (fila && !sinMovimiento()) {
+    fila.querySelector(".btn-hecha")?.classList.add("hecho");
+    if (tarea.once) {
+      fila.classList.add("saliendo");
+    } else {
+      fila.classList.add("hecha-anim");
+      const anillo = fila.querySelector(".anillo");
+      anillo?.style.setProperty("--pct", "0");
+      const disco = fila.querySelector(".anillo-disco");
+      if (disco) disco.textContent = `${Math.ceil(tarea.frequencyDays)}d`;
+    }
+    await esperar(480);
+  }
   // Las de una sola vez se retiran de la lista al hacerse.
   if (tarea.once) {
     await deleteDoc(doc(coleccionTareas(), tarea.id));
@@ -512,7 +602,7 @@ function tarjetaTienda(nombre, items) {
   const grip = document.createElement("span");
   grip.className = "tienda-grip";
   grip.setAttribute("aria-hidden", "true");
-  grip.textContent = "⠿";
+  grip.append(icono("asa"));
   const chevron = document.createElement("span");
   chevron.className = "tienda-chevron";
   chevron.setAttribute("aria-hidden", "true");
@@ -536,7 +626,7 @@ function tarjetaTienda(nombre, items) {
     del.className = "tienda-eliminar";
     del.setAttribute("role", "button");
     del.setAttribute("aria-label", `Eliminar tienda ${nombre}`);
-    del.textContent = "✕";
+    del.append(icono("cerrar"));
     del.addEventListener("click", (ev) => { ev.stopPropagation(); eliminarTienda(nombre, items); });
     header.append(del);
   }
@@ -569,7 +659,7 @@ function tarjetaTienda(nombre, items) {
   form.className = "add-row";
   const plus = document.createElement("span");
   plus.className = "add-plus";
-  plus.textContent = "+";
+  plus.append(icono("mas"));
   const input = document.createElement("input");
   input.className = "input-item";
   input.type = "text";
@@ -613,7 +703,7 @@ function filaItem(item) {
   const grip = document.createElement("span");
   grip.className = "item-grip";
   grip.setAttribute("aria-hidden", "true");
-  grip.textContent = "⠿";
+  grip.append(icono("asa"));
 
   // La casilla va SOLA dentro del <label>: así tocar el texto no la marca.
   const label = document.createElement("label");
@@ -1270,6 +1360,8 @@ function categoriasDe(kit) {
 
 /* La pestaña Kits tiene cuatro pantallas: lista de kits, detalle de un kit,
    lista de plantillas y detalle de una plantilla. */
+const kitsCompletos = new Map(); // kitId → ¿estaba completo en el último pintado?
+
 function pintarKits() {
   const mostrar = (cual) => {
     $("#kits-lista").hidden = cual !== "kits";
@@ -1320,7 +1412,7 @@ function pintarListaPlantillas() {
   const volver = document.createElement("button");
   volver.type = "button";
   volver.className = "kit-volver";
-  volver.textContent = "‹ Kits";
+  volver.append(icono("atras"), "Kits");
   volver.addEventListener("click", cerrarPlantillas);
   const h = document.createElement("h2");
   h.className = "kit-titulo";
@@ -1393,7 +1485,9 @@ function kitCard(kit) {
   nom.textContent = kit.name;
   const prog = document.createElement("div");
   prog.className = "kit-card-prog";
-  prog.textContent = total ? `${contarChecked(kit)}/${total} listo` : "vacío";
+  const completo = total > 0 && contarChecked(kit) === total;
+  prog.textContent = !total ? "vacío" : completo ? "¡Todo listo!" : `${contarChecked(kit)}/${total} listo`;
+  if (completo) { card.classList.add("completo"); nom.append(estrella()); }
   cuerpo.append(nom, prog);
   const chev = document.createElement("span");
   chev.className = "kit-card-chevron";
@@ -1420,15 +1514,21 @@ function pintarDetalleKit(kit) {
   const volver = document.createElement("button");
   volver.type = "button";
   volver.className = "kit-volver";
-  volver.textContent = esP ? "‹ Plantillas" : "‹ Kits";
+  volver.append(icono("atras"), esP ? "Plantillas" : "Kits");
   volver.addEventListener("click", esP ? cerrarPlantilla : cerrarKit);
   const h = document.createElement("h2");
   h.className = "kit-titulo";
   h.textContent = kit.name;
   const prog = document.createElement("div");
   prog.className = "kit-progreso";
+  const completo = !esP && total > 0 && hechos === total;
+  // La estrella "salta" solo cuando el kit acaba de completarse.
+  const recienCompleto = completo && kitsCompletos.get(kit.id) === false;
+  if (!esP) kitsCompletos.set(kit.id, completo);
+  if (completo) { h.append(estrella(recienCompleto)); prog.classList.add("completo"); }
   if (!total) prog.textContent = "Aún sin ítems — agrega abajo";
   else if (esP) prog.textContent = "Lo que cambies aquí saldrá así cada vez que la uses.";
+  else if (completo) prog.textContent = `¡Todo listo! ${total} de ${total}`;
   else prog.textContent = `${hechos} de ${total} listo`;
   cab.append(volver, h, prog);
   if (total && !esP) {
@@ -1468,7 +1568,8 @@ function pintarDetalleKit(kit) {
   const btnCat = document.createElement("button");
   btnCat.type = "button";
   btnCat.className = "fila-punteada";
-  btnCat.textContent = "＋ Nueva categoría";
+  btnCat.classList.add("con-ico");
+  btnCat.append(icono("mas"), "Nueva categoría");
   btnCat.addEventListener("click", () => abrirDialogoItem(kit, null, ""));
   cont.append(btnCat);
 
@@ -1528,7 +1629,7 @@ function filaItemKit(kit, item) {
   edit.type = "button";
   edit.className = "item-editar";
   edit.setAttribute("aria-label", `Editar ${item.label}`);
-  edit.textContent = "✎";
+  edit.append(icono("editar"));
   edit.addEventListener("click", (ev) => { ev.stopPropagation(); abrirDialogoItem(kit, item.id, item.cat); });
   li.append(label, edit);
   return li;
@@ -1539,7 +1640,7 @@ function addRowKit(kit, catNombre) {
   form.className = "add-row";
   const plus = document.createElement("span");
   plus.className = "add-plus";
-  plus.textContent = "+";
+  plus.append(icono("mas"));
   const input = document.createElement("input");
   input.className = "input-item";
   input.type = "text";
@@ -1865,6 +1966,13 @@ $("#btn-ajustes").addEventListener("click", () => {
   $("#dialogo-ajustes").showModal();
 });
 $("#btn-cerrar-ajustes").addEventListener("click", () => $("#dialogo-ajustes").close());
+$("#btn-acerca").addEventListener("click", () => {
+  $("#dialogo-ajustes").close();
+  $("#acerca-version").textContent = VERSION_APP;
+  $("#acerca-fecha").textContent = ULTIMA_ACTUALIZACION;
+  $("#dialogo-acerca").showModal();
+});
+$("#btn-cerrar-acerca").addEventListener("click", () => $("#dialogo-acerca").close());
 
 // Pestañas y lista de compras
 $("#tab-tareas").addEventListener("click", () => mostrarVista("tareas"));
