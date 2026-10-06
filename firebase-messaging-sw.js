@@ -46,12 +46,13 @@ self.addEventListener("notificationclick", (event) => {
    Sube el número de versión cuando cambies archivos y quieras forzar caché
    nueva. La estrategia es "red primero": si hay internet siempre ves lo
    último; si no, se sirve lo guardado. */
-const CACHE = "quejuicio-v3";
+const CACHE = "quejuicio-v4";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
+  "./plata.js",
   "./config.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
@@ -77,7 +78,12 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   // Solo manejamos lo del propio sitio; Firestore, FCM y las fuentes pasan
   // directo a la red sin tocarlos.
-  if (new URL(req.url).origin !== self.location.origin) return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+  // Las funciones de Netlify (Notion, Plata) tampoco se tocan: lo que
+  // responden no se guarda en la caché offline. Los números de Plata NO
+  // pueden quedar guardados en el teléfono.
+  if (url.pathname.startsWith("/.netlify/functions/")) return;
   event.respondWith(
     fetch(req)
       .then((res) => {

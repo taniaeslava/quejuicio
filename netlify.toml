@@ -9,8 +9,9 @@
   # Netlify se salta el despliegue (git diff sin cambios → sale 0 → skip).
   ignore = "git diff --quiet HEAD^ HEAD -- . ':!android-app' ':!notify' ':!.github' ':!firestore.rules' ':!*.md'"
 
-# El ayudante que habla con Notion (el navegador no puede hacerlo solo).
-# Netlify lo compila en la nube; aquí no hace falta Node ni npm install.
+# Los ayudantes de servidor: notion.js (habla con Notion) y plata.mjs (lee el
+# Sheet del presupuesto). Netlify los compila en la nube e instala solo lo del
+# package.json de la raíz; aquí no hace falta Node ni npm install.
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"

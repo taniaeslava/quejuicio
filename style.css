@@ -47,6 +47,9 @@
   --terracota-suave: rgba(194, 90, 56, 0.12);
   --terracota-swipe: rgba(194, 90, 56, 0.14);
   --terracota-presion: rgba(194, 90, 56, 0.10);
+  --ambar-suave: rgba(192, 138, 46, 0.14);  /* Plata: «por encima del ritmo» */
+  --verde-suave: rgba(79, 122, 91, 0.12);   /* Plata: «por debajo del ritmo» */
+  --ahorro: #6A97C0;  /* Plata: «ahorrado», azul de azulejo más claro que el cobalto (probado para daltonismo) */
   --backdrop: rgba(22, 52, 77, 0.40);
   --franja-fondo: #F1E6D4;
   --texto-entrada: #5C5346;
@@ -106,6 +109,9 @@
   --terracota-suave: rgba(226, 121, 90, 0.18);
   --terracota-swipe: rgba(226, 121, 90, 0.22);
   --terracota-presion: rgba(226, 121, 90, 0.14);
+  --ambar-suave: rgba(217, 165, 74, 0.16);
+  --verde-suave: rgba(111, 165, 126, 0.16);
+  --ahorro: #4F82B2;
   --backdrop: rgba(5, 12, 20, 0.60);
   --franja-fondo: #1B3850;
   --texto-entrada: #D4CBBC;
@@ -681,9 +687,8 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
 .btn-hecha .ico { position: relative; z-index: 1; }
 
 /* ── Acerca de QueJuicio (se abre desde Ajustes) ──
-   El mosaico de azulejos vive SOLO aquí y en la pestaña Plata (que lo copia
-   de aquí). Colores fijos de marca, como el logo; la baldosa oscura se
-   aclara de noche para no perderse. */
+   El mosaico de azulejos vive SOLO aquí. Colores fijos de marca, como el
+   logo; la baldosa oscura se aclara de noche para no perderse. */
 .mosaico { display: block; width: 100%; height: auto; margin-bottom: 1.1rem; }
 .mosaico .m-cob { fill: var(--logo-azul); }
 .mosaico .m-ter { fill: var(--logo-estrella); }
@@ -700,8 +705,352 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
 .acerca-firma { font-family: var(--fuente-display); font-style: italic; font-weight: 500; color: var(--terracota-text); margin-top: 1rem !important; }
 #btn-acerca { margin-top: 1rem; }
 
-/* ── Plata (todavía no disponible): el mosaico y un aviso ── */
-.proximamente { text-align: center; padding: 1.5rem 0 1rem; }
-.proximamente .mosaico { max-width: 22rem; margin: 0 auto 1.4rem; }
-.proximamente-titulo { font-size: 1.6rem; color: var(--cobalto); margin: 0; }
-.proximamente-texto { color: var(--texto-entrada); margin: 0.35rem 0 0; }
+/* ── Plata: el presupuesto de la casa (lo dibuja plata.js) ──
+   Diseño de oct 2026 (Claude Design). Reusa la tarjeta de grupo, las filas
+   y el anillo de Tareas. Verde, ámbar y terracota SOLO significan estado; el
+   color de serie va en barras y muestras, nunca en los textos. */
+.plata-cabecera {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+  padding: 6px 4px 0;
+}
+.plata-titulos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.plata-etiqueta { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: var(--label); }
+.plata-mes { font-size: 28px; line-height: 1.15; letter-spacing: -0.01em; color: var(--cobalto); margin: 0; }
+.plata-nav { display: flex; gap: 6px; flex: none; }
+.plata-nav button {
+  width: 36px; height: 36px; border: none; border-radius: 50%;
+  background: var(--navy-overflow); color: var(--cobalto);
+  display: grid; place-items: center; font-size: 18px; cursor: pointer;
+}
+.plata-nav button:active { background: var(--navy-tint); }
+.plata-nav button:disabled { opacity: 0.35; cursor: default; }
+.plata-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 8px 4px 0; padding: 6px 11px; border-radius: 999px;
+  background: var(--navy-tint); color: var(--cobalto);
+  font-size: 12px; font-weight: 600;
+}
+.plata-nota { font-size: 13px; color: var(--muted); margin: 8px 4px 0; }
+.cifras { font-variant-numeric: tabular-nums; }
+
+.plata-card {
+  position: relative;
+  background: var(--card); border-radius: 18px; box-shadow: var(--sombra-card);
+  padding: 18px 16px 16px; margin: 14px 0 26px;
+}
+
+/* el mes de un vistazo */
+.plata-cifra { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 8px; margin-top: 6px; }
+.plata-cifra-grande {
+  font-size: 40px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15;
+  color: var(--tinta); font-variant-numeric: tabular-nums;
+}
+.plata-cifra-de { font-size: 14px; color: var(--muted); }
+.plata-barra { position: relative; height: 34px; margin-top: 10px; }
+.plata-barra.con-marca { height: 58px; }
+.plata-barra-pista {
+  position: absolute; left: 0; right: 0; top: 12px; height: 14px;
+  border-radius: 4px; background: var(--ring-track); overflow: hidden;
+  display: flex; gap: 2px;
+}
+.plata-barra-fijos { background: var(--muted); }
+.plata-barra-variables { background: var(--cobalto); border-radius: 0 4px 4px 0; }
+.plata-marca {
+  position: absolute; top: 4px; width: 2px; height: 30px; margin-left: -1px;
+  border-radius: 1px; background: var(--tinta);
+}
+.plata-marca-texto {
+  position: absolute; top: 38px; transform: translateX(-50%);
+  font-size: 11px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.plata-leyenda { display: flex; flex-direction: column; gap: 7px; margin-top: 4px; font-size: 14px; }
+.plata-leyenda-fila { display: flex; align-items: center; gap: 8px; }
+.plata-muestra { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.muestra-fijos { background: var(--muted); }
+.muestra-variables { background: var(--cobalto); }
+.muestra-pista { background: var(--ring-track); }
+.plata-leyenda-nombre { flex: 1; }
+.plata-leyenda-valor { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.plata-leyenda-valor.pasado { color: var(--terracota-text); }
+.plata-aviso {
+  margin-top: 16px; padding: 11px 12px; border-radius: 12px;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.plata-aviso > .ico { font-size: 18px; stroke-width: 2.2; margin-top: 1px; }
+.plata-aviso.encima { background: var(--ambar-suave); }
+.plata-aviso.encima > .ico { color: var(--ambar-text); }
+.plata-aviso.debajo { background: var(--verde-suave); }
+.plata-aviso.debajo > .ico { color: var(--verde-text); }
+.plata-aviso-titulo { font-size: 15px; font-weight: 600; color: var(--tinta); }
+.plata-aviso-texto { font-size: 13px; line-height: 1.4; color: var(--muted); margin-top: 3px; }
+.plata-actualizando > :not(.plata-pildora) { opacity: 0.5; }
+.plata-pildora {
+  position: absolute; top: 14px; right: 14px;
+  padding: 5px 10px; border-radius: 999px;
+  background: var(--navy-tint); color: var(--cobalto); font-size: 12px; font-weight: 600;
+}
+
+/* categorías: filas de Tareas. Las que abren el detalle son botones
+   (.fila-toque); las de solo lectura (movimientos, totales) son .fila-dato */
+.fila-toque {
+  width: 100%; padding-top: 13px; padding-bottom: 13px;
+  background: none; border: none; font: inherit; color: inherit; text-align: left;
+}
+.fila-dato { cursor: default; padding-top: 13px; padding-bottom: 13px; }
+.fila-dato:active { background: none; }
+.anillo-plata .anillo-disco { font-size: 9.5px; letter-spacing: -0.03em; }
+.anillo-grande { width: 44px; height: 44px; }
+.anillo-grande .anillo-disco { width: 34px; height: 34px; font-size: 11px; }
+.anillo.unica.anillo-grande { width: 40px; height: 40px; }
+.meta-larga { white-space: normal; }
+.plata-lado { flex: none; text-align: right; }
+.plata-lado-etq { font-size: 11px; color: var(--muted); }
+.plata-lado-monto { font-size: 15px; font-weight: 600; color: var(--tinta); font-variant-numeric: tabular-nums; }
+.plata-lado.pasado .plata-lado-etq,
+.plata-lado.pasado .plata-lado-monto { color: var(--terracota-text); }
+.atenuada .fila-titulo,
+.atenuada .plata-lado-monto { color: var(--muted); }
+.plata-fijos-disco {
+  width: 34px; height: 34px; border-radius: 50%; flex: none;
+  display: grid; place-items: center;
+  background: var(--ring-track); color: var(--muted); font-size: 16px;
+}
+.plata-fijos-disco .ico { stroke-width: 2.4; }
+.plata-chevron { flex: none; display: grid; color: var(--label); font-size: 16px; transition: transform 0.2s ease; }
+.fila-fijos[aria-expanded="true"] .plata-chevron { transform: rotate(180deg); }
+.fila-fijo { padding-left: 64px; } /* alineada con el texto de «Pagos fijos» */
+
+/* mes vacío y error */
+.plata-vacio { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 26px 20px; }
+.plata-vacio-icono {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: var(--navy-tint); color: var(--cobalto);
+  display: grid; place-items: center; font-size: 24px;
+}
+.plata-vacio-titulo { font-family: var(--fuente-display); font-weight: 600; font-size: 20px; color: var(--cobalto); }
+.plata-vacio p { margin: 0; font-size: 14px; color: var(--muted); }
+.plata-vacio .btn { margin-top: 8px; }
+
+/* el PIN: quién eres (como el selector de tema de Ajustes) y 4 dígitos */
+.plata-quien {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;
+  width: min(100%, 15rem); margin-top: 6px;
+  background: var(--navy-suave); border-radius: 16px; padding: 4px;
+}
+.plata-quien button {
+  border: none; border-radius: 12px; background: none; padding: 0.55rem 0.25rem;
+  font: inherit; font-size: 0.95rem; font-weight: 500; color: var(--cobalto); cursor: pointer;
+}
+.plata-quien button[aria-pressed="true"] { background: var(--cobalto); color: var(--crema-sobre-color); font-weight: 700; }
+.plata-pin-form { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; margin-top: 8px; }
+.plata-pin-input {
+  width: 9rem; padding: 6px 0 6px 0.6em; /* el padding compensa el espaciado del último dígito */
+  border: none; border-bottom: 2px solid var(--navy-outline); border-radius: 0; background: none;
+  font: inherit; font-size: 28px; letter-spacing: 0.6em; text-align: center; color: var(--tinta);
+}
+.plata-pin-input:focus { outline: none; border-bottom-color: var(--cobalto); }
+.plata-pin-input:disabled { opacity: 0.45; }
+.plata-pin-error { margin: 0; min-height: 1.4em; font-size: 14px; color: var(--terracota-text); }
+.plata-pin-error.ayuda { color: var(--muted); }
+.plata-pin-form .btn:disabled { opacity: 0.45; cursor: default; }
+
+/* secciones de Plata: Mes · Año · Viajes (como el selector de tema) */
+.plata-secciones {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  margin: 4px 0 14px; padding: 4px;
+  background: var(--navy-suave); border-radius: 16px;
+}
+.plata-secciones button {
+  border: none; border-radius: 12px; background: none; padding: 0.5rem 0.25rem;
+  font: inherit; font-size: 0.95rem; font-weight: 500; color: var(--cobalto); cursor: pointer;
+}
+.plata-secciones button[aria-pressed="true"] { background: var(--cobalto); color: var(--crema-sobre-color); font-weight: 700; }
+.plata-pie { margin: 0 4px 8px; font-size: 13px; color: var(--muted); text-align: center; }
+
+/* tarjetas con gráfica */
+.plata-card-titulo { font-family: var(--fuente-display); font-size: 18px; font-weight: 600; color: var(--cobalto); margin: 0; }
+.plata-card-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.plata-leyenda-linea { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.plata-leyenda-linea > span { display: inline-flex; align-items: center; gap: 6px; }
+.muestra-ahorro { background: var(--ahorro); }
+.muestra-pasado { background: var(--terracota); }
+.muestra-raya, .muestra-marca { width: 14px; height: 2px; border-radius: 1px; background: var(--tinta); }
+.muestra-marca { width: 2px; height: 14px; }
+.muestra-futuro { width: 8px; background: none; border: 1.5px dashed var(--gris-punteado); }
+.plata-franja {
+  margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: var(--navy-tint);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.plata-franja-fila { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.plata-franja-titulo { font-size: 13px; font-weight: 600; color: var(--cobalto); }
+.plata-franja-monto { font-size: 17px; font-weight: 600; color: var(--tinta); font-variant-numeric: tabular-nums; }
+.plata-franja-nota { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.plata-tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+.plata-tres > div { display: flex; flex-direction: column; min-width: 0; }
+.plata-tres-valor { font-size: 15px; font-weight: 600; color: var(--tinta); font-variant-numeric: tabular-nums; }
+.plata-tres-etq { font-size: 11px; color: var(--muted); }
+.plata-card > .plata-tres { margin-top: 14px; }
+.plata-card > .plata-tres .plata-tres-valor { font-size: 17px; }
+.plata-totales { padding-top: 14px; border-top: 1px solid var(--hairline); }
+.plata-card > .plata-totales .plata-tres-valor { font-size: 14px; }
+.plata-nota-derecha { text-align: right; font-size: 11px; color: var(--muted); margin-top: 2px; }
+.plata-nota-marca { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+
+/* columnas por mes (detalle y año): eje a la izquierda solo en el año.
+   Rejilla, rayas y columnas miden sobre la MISMA caja (top 0), o no cuadran;
+   el margen de arriba deja sitio a la etiqueta de la línea más alta. */
+.plata-graf, .plata-barras { position: relative; height: 170px; margin-top: 26px; }
+.plata-graf-area {
+  position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px;
+}
+.con-eje .plata-graf-area { left: 62px; }
+.plata-letras {
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px;
+  margin-top: 6px; font-size: 11px; color: var(--muted); text-align: center;
+}
+.plata-letras.con-eje { margin-left: 62px; }
+.plata-letras.con-eje-corto { margin-left: 44px; gap: 0; font-size: 10px; }
+.plata-letras .elegida { font-weight: 700; color: var(--tinta); }
+.plata-col {
+  position: relative; height: 100%; padding: 0;
+  border: none; border-radius: 6px; background: none; cursor: pointer;
+}
+.plata-col.elegido { background: var(--navy-tint); }
+.plata-col:disabled { cursor: default; }
+.plata-col.parcial > span { opacity: 0.5; }
+.plata-col.futuro::after {
+  content: ""; position: absolute; left: 50%; bottom: 0; width: 14px; height: 100%; margin-left: -7px;
+  border: 1.5px dashed var(--gris-punteado); border-radius: 4px;
+}
+.plata-barra-col {
+  position: absolute; left: 50%; bottom: 0; width: 64%; max-width: 22px; transform: translateX(-50%);
+  background: var(--cobalto); border-radius: 4px 4px 0 0;
+}
+.plata-barra-col.pasado { background: var(--terracota); }
+.plata-apilada { position: absolute; left: 50%; bottom: 0; width: 14px; margin-left: -7px; }
+.plata-apilada.gastado { background: var(--cobalto); border-radius: 4px 4px 0 0; }
+.plata-apilada.gastado.con-ahorro { border-radius: 0; }
+.plata-apilada.ahorrado { background: var(--ahorro); border-radius: 4px 4px 0 0; }
+.plata-ingreso {
+  position: absolute; left: 50%; width: 22px; height: 2px; margin: 0 0 -1px -11px;
+  border-radius: 1px; background: var(--tinta);
+}
+.plata-rejilla { position: absolute; left: 0; right: 0; height: 1px; background: var(--hairline); }
+.plata-rejilla-texto {
+  position: absolute; left: 0; bottom: 3px;
+  font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.plata-tope, .plata-promedio { position: absolute; left: 0; right: 0; height: 2px; margin-bottom: -1px; background: var(--tinta); }
+.plata-promedio { height: 1px; background: var(--muted); }
+.plata-tope-texto {
+  position: absolute; right: 0; bottom: 4px;
+  font-size: 11px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.plata-pie-datos { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hairline); display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
+.plata-pie-datos > div { display: flex; justify-content: space-between; gap: 10px; }
+.plata-pie-datos span { color: var(--muted); }
+.plata-pie-datos strong { font-weight: 600; color: var(--tinta); font-variant-numeric: tabular-nums; }
+
+/* detalle de una categoría */
+.plata-volver {
+  display: inline-flex; align-items: center; gap: 4px; margin: 4px 0 10px; padding: 6px 4px;
+  background: none; border: none; font: inherit; font-size: 16px; font-weight: 500; color: var(--cobalto); cursor: pointer;
+}
+.plata-detalle-cabecera { display: flex; align-items: center; gap: 14px; padding: 0 4px; }
+.plata-detalle-resumen { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* filas con barra (gastos anuales, ahorros, comisiones, viajes) */
+.plata-barra-fila {
+  display: block; width: 100%; padding: 14px 0 12px; margin: 0;
+  background: none; border: none; border-top: 1px solid var(--hairline);
+  font: inherit; color: inherit; text-align: left;
+}
+button.plata-barra-fila { cursor: pointer; }
+.plata-card-titulo + .plata-nota-marca + .plata-barra-fila,
+.plata-card-titulo + .plata-leyenda-linea + .plata-barra-fila { margin-top: 8px; border-top: none; }
+.plata-barra-fila-arriba { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.plata-barra-fila-nombre { font-size: 16px; font-weight: 500; color: var(--tinta); }
+.plata-barra-fila-meta { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.plata-barra-fila-abajo { display: flex; justify-content: space-between; gap: 10px; margin-top: 4px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.plata-barra-fila-abajo .pasado { font-weight: 600; color: var(--terracota-text); }
+.tenue { color: var(--muted); }
+.sin-cortar { white-space: nowrap; }
+.plata-pista-caja { position: relative; height: 22px; margin-top: 6px; }
+.plata-pista { height: 10px; border-radius: 4px; background: var(--ring-track); overflow: hidden; margin-top: 8px; }
+.plata-pista-caja .plata-pista { position: absolute; left: 0; right: 0; top: 6px; margin: 0; }
+.plata-pista.fina { height: 8px; margin-top: 6px; }
+.plata-pista-relleno { height: 100%; background: var(--cobalto); border-radius: 0 4px 4px 0; }
+.plata-pista-relleno.pasado { background: var(--terracota); }
+.plata-pista-relleno.ahorro { background: var(--ahorro); }
+.plata-pista-relleno.comision { background: var(--muted); }
+.plata-pista-marca { position: absolute; top: 0; width: 2px; height: 22px; margin-left: -1px; border-radius: 1px; background: var(--tinta); }
+
+/* ahorros: una baldosita por mes */
+.plata-baldosas { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; margin-top: 12px; }
+.plata-baldosa-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.baldosa {
+  width: 100%; max-width: 24px; aspect-ratio: 1; border-radius: 5px;
+  display: grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--terracota-text);
+}
+.plata-muestra.baldosa { width: 12px; height: 12px; border-radius: 3px; }
+.baldosa.llego { background: var(--ahorro); }
+.baldosa.falta { background: var(--terracota-suave); border: 2px solid var(--terracota); }
+.baldosa.pendiente { border: 1.5px dashed var(--cobalto); }
+.baldosa.porvenir { background: var(--ring-track); }
+.plata-baldosa-letra { font-size: 10px; color: var(--muted); }
+
+/* lo que rinde cada euro en Colombia */
+.plata-graf-tasa { height: 170px; }
+.plata-tasa-area { position: absolute; left: 44px; right: 0; top: 0; bottom: 0; }
+.plata-tasa-area svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.plata-tasa-area polyline { fill: none; stroke: var(--cobalto); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.plata-punto {
+  position: absolute; width: 36px; height: 36px; margin: 0 0 -18px -18px; padding: 0;
+  border: none; background: none; cursor: pointer; display: grid; place-items: center;
+}
+.plata-punto span { width: 10px; height: 10px; border-radius: 50%; background: var(--cobalto); border: 2px solid var(--card); }
+.plata-punto.elegido span { width: 14px; height: 14px; box-shadow: 0 0 0 4px var(--navy-tint); }
+.plata-hallazgo { margin: 14px 0 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.plata-comisiones {
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hairline);
+  display: flex; flex-direction: column; gap: 10px; font-size: 13px;
+}
+
+/* viajes */
+.plata-viajes { margin: 12px 0 26px; }
+.plata-viaje {
+  display: block; width: 100%; padding: 14px 16px 12px; position: relative;
+  background: none; border: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.plata-viaje:not(:first-child)::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--hairline); }
+.plata-viaje.elegido { background: var(--navy-tint); }
+.plata-viaje-arriba { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.plata-viaje-nombre { font-family: var(--fuente-display); font-size: 18px; font-weight: 600; color: var(--cobalto); }
+.plata-viaje-derecha { display: inline-flex; align-items: baseline; gap: 10px; font-size: 13px; white-space: nowrap; }
+.plata-viaje-derecha strong { font-size: 15px; font-weight: 600; color: var(--tinta); font-variant-numeric: tabular-nums; }
+.plata-viaje-titulo { font-family: var(--fuente-display); font-size: 24px; font-weight: 600; color: var(--cobalto); margin: 0; }
+.plata-viaje-total { font-size: 18px; font-weight: 600; color: var(--tinta); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.plata-viaje-detalle { scroll-margin-top: 12px; }
+.plata-viaje-cat { margin-top: 12px; font-size: 15px; }
+.plata-mini-etiqueta { margin: 22px 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: var(--label); }
+
+/* movimientos: fecha, concepto, cuenta y monto con céntimos */
+.mov-fecha { width: 36px; flex: none; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.mov-dia { font-size: 18px; font-weight: 600; color: var(--tinta); font-variant-numeric: tabular-nums; }
+.mov-mes { font-size: 10px; letter-spacing: 0.08em; color: var(--muted); }
+.mov-monto { flex: none; font-size: 15px; font-weight: 600; color: var(--tinta); font-variant-numeric: tabular-nums; text-align: right; }
+.fila-total .fila-cuerpo { font-size: 15px; color: var(--muted); }
+.plata-viaje-detalle .fila-mov, .plata-viaje-detalle .fila-total { padding-left: 0; padding-right: 0; }
+.plata-viaje-detalle .fila:not(:first-child)::before { left: 50px; }
+
+/* cargando la primera vez: formas quietas, sin brillo animado */
+.plata-esqueleto { display: flex; flex-direction: column; gap: 12px; }
+.plata-esqueleto div:not(.esq-fila):not(.esq-textos) { background: var(--ring-track); }
+.esq-etiqueta { width: 120px; height: 10px; border-radius: 5px; }
+.esq-cifra { width: 200px; height: 32px; border-radius: 8px; }
+.esq-barra { height: 14px; border-radius: 4px; }
+.esq-fila { display: flex; align-items: center; gap: 14px; padding-top: 8px; }
+.esq-anillo { width: 34px; height: 34px; border-radius: 50%; flex: none; }
+.esq-textos { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.esq-linea { height: 11px; border-radius: 6px; }

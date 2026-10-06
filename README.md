@@ -213,6 +213,38 @@ vea (Deploys → Trigger deploy → *Clear cache and deploy site*).
 
 ---
 
+## Pestaña Plata: el presupuesto (Google Sheet)
+
+La pestaña **Plata** muestra el presupuesto de la casa, que vive en un Google
+Sheet privado. Los números no pasan por Firestore ni quedan guardados en el
+teléfono: `netlify/functions/plata.mjs` lee el Sheet en el momento, y solo
+después de poner el **PIN** de cada uno. Se configura una sola vez:
+
+**1. Google Cloud** (en el proyecto de Firebase): habilitar la **Google Sheets
+API**, crear una **cuenta de servicio** sin roles y descargar una clave
+**JSON**.
+
+**2. El Sheet:** compartirlo con el correo de la cuenta de servicio
+(`…@….iam.gserviceaccount.com`) como **Lector**.
+
+**3. Netlify** → Environment variables:
+
+| Variable         | Valor                                                        |
+| ---------------- | ------------------------------------------------------------ |
+| `GOOGLE_SA_JSON` | el contenido completo del JSON (marcada como secreta)       |
+| `SHEET_ID`       | el código largo de la URL del Sheet                         |
+| `PIN_TANIA`, `PIN_JC` | el PIN de 4 dígitos de cada uno (sin marcar como secretas: Netlify busca los secretos en los archivos del sitio y un número corto podría coincidir) |
+| `CODIGO_HOGAR`   | el código de hogar (aquí es **obligatorio**)                |
+
+El Sheet tiene que tener en la pestaña `Resumen` la celda **«Datos hasta»**
+(B2) y la columna **«Tipo»** (S). 5 PIN equivocados bloquean Plata 15 minutos
+(y cada bloqueo siguiente dura el doble). El contador vive en Netlify Blobs,
+que Netlify instala solo gracias al `package.json` de la raíz.
+
+> ⚠️ La clave JSON **nunca** va en el repo ni en la carpeta del proyecto.
+
+---
+
 ## Cómo funciona el anillo de frescura
 
 Cada tarjeta tiene un anillo que se va llenando a medida que la tarea

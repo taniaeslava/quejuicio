@@ -1,0 +1,8 @@
+{
+  "name": "quejuicio-funciones",
+  "private": true,
+  "description": "Solo para las funciones de Netlify (netlify/functions): Netlify lo instala al desplegar. El frontend NO usa npm.",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

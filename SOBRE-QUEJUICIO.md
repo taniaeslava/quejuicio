@@ -47,11 +47,10 @@ teléfonos a la misma información.
 
 ---
 
-## Las tres secciones
+## Las cuatro secciones
 
-Abajo de la pantalla hay tres pestañas: **Tareas**, **Compras** y **Kits**.
-Al lado hay una cuarta, **Plata**, que todavía está en camino: por ahora solo
-muestra el mosaico de azulejos y avisa que estará disponible pronto.
+Abajo de la pantalla hay cuatro pestañas: **Tareas**, **Compras**, **Kits** y
+**Plata**.
 
 ### 📋 Tareas
 
@@ -116,6 +115,24 @@ destapador, el repelente, el adaptador de enchufe…).
 - Es **tuyo y editable**: agrega, edita o borra ítems y categorías.
 - Como las actividades se repiten, cada kit tiene **"Desmarcar todo"** para
   dejarlo listo para la próxima.
+
+### 💶 Plata
+
+El **presupuesto de la casa**, bonito y siempre al día. Los números viven en
+el Google Sheet de siempre (la contabilidad); Plata solo los muestra, en
+vivo, sin copiarlos a ningún lado.
+
+- Para entrar, cada uno escoge su nombre y pone **su PIN** de 4 dígitos.
+  Después de 15 minutos (o al tocar el candado) se cierra sola y los números
+  se borran del teléfono.
+- **Mes:** cuánto se ha gastado del presupuesto mensual y cada categoría con
+  su anillo (verde, ámbar o terracota, como las tareas).
+- **Año:** los 12 meses, los gastos anuales (viajes, regalos…), los ahorros
+  mes a mes y cuánto rinde cada euro que se manda a Colombia.
+- **Viajes:** cuánto costó cada viaje y en qué se fue la plata.
+- Tocar una categoría muestra sus 12 meses y sus movimientos.
+
+Se actualiza cuando se cierra el mes en el Sheet (en viaje, más seguido).
 
 ---
 

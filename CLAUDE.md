@@ -10,23 +10,26 @@
 QueJuicio es una PWA casera y compartida para dos personas (una pareja). Tiene
 tres secciones: **Tareas** del hogar (recurrentes y de una sola vez, con avisos),
 **Compras** por tiendas y **Kits** (listas para no olvidar nada al preparar algo,
-por categorías). Hay una cuarta pestaña, **Plata**, que todavía no hace nada:
-solo muestra el mosaico y «estará disponible pronto». Todo se sincroniza entre los dos teléfonos por Firestore. Para el "qué y por qué" en lenguaje humano, ver
+por categorías). Hay una cuarta pestaña, **Plata** (el presupuesto de la casa),
+**en construcción** (ver «Plata» más abajo). Todo se sincroniza entre los dos teléfonos por Firestore. Para el "qué y por qué" en lenguaje humano, ver
 [SOBRE-QUEJUICIO.md](SOBRE-QUEJUICIO.md). Para la instalación/configuración, ver
 [README.md](README.md).
 
 ## Reglas de oro (romper esto rompe la app)
 
-0. **El único código de servidor es `netlify/functions/notion.js`** y existe
-   por una razón concreta: Notion no acepta llamadas desde el navegador. No
-   metas ahí lógica de la app ni lo uses como excusa para agregar un backend.
-   Sus claves (`NOTION_TOKEN`, `CODIGO_HOGAR`) viven en las variables de
-   entorno de Netlify, **nunca en el repo** (que es público).
+0. **El único código de servidor son dos ayudantes en `netlify/functions/`**,
+   cada uno por una razón concreta: `notion.js` (Notion no acepta llamadas
+   desde el navegador) y `plata.mjs` (el Sheet del presupuesto es privado y
+   su llave no puede estar en el navegador). No metas ahí lógica de la app ni
+   los uses como excusa para agregar un backend. Sus claves (`NOTION_TOKEN`,
+   `CODIGO_HOGAR`, `GOOGLE_SA_JSON`, `SHEET_ID`, `PIN_TANIA`, `PIN_JC`) viven
+   en las variables de entorno de Netlify, **nunca en el repo** (que es público).
 1. **Sin build, sin framework, sin npm en el frontend.** Es HTML + CSS +
    JavaScript puro con módulos ES cargados por CDN. No agregues un empaquetador
    ni dependencias de frontend. Debe seguir siendo desplegable con solo subir
-   los archivos. (El único `package.json` es para compilar la app Android en la
-   nube — ver más abajo — no lo uses para el frontend.)
+   los archivos. (Hay dos `package.json` y ninguno es del frontend: el de
+   `android-app/` compila la app Android en la nube, y el de la raíz solo trae
+   `@netlify/blobs` para `plata.mjs` — Netlify lo instala solo al desplegar.)
 2. **UI 100% en español** (español colombiano). Métrico, tono cercano.
 3. **Al agregar cualquier colección nueva de Firestore, hay que:**
    (a) añadir su regla en [firestore.rules](firestore.rules), y
@@ -61,7 +64,8 @@ solo muestra el mosaico y «estará disponible pronto». Todo se sincroniza entr
 # La app WEB (lo que ven los teléfonos) vive en la raíz:
 index.html                  Pantalla de entrada + pantalla principal (4 vistas: tareas/compras/kits/plata) + diálogos
 style.css                   Estilo azulejo; tokens de color en :root
-app.js                      TODA la lógica del frontend (un solo módulo)
+app.js                      Toda la lógica del frontend, menos Plata
+plata.js                    Pestaña Plata (módulo aparte: sus datos no vienen de Firestore)
 config.js                   Config de Firebase (claves públicas; no es secreto)
 firebase-messaging-sw.js    Service worker: push + caché offline
 manifest.webmanifest        Manifiesto PWA
@@ -70,6 +74,8 @@ icons/                      Íconos de la PWA
 netlify.toml                Config de Netlify (sitio estático, sin compilación)
 notify/index.js             Script diario de notificaciones (Node + Admin SDK, corre en Actions)
 netlify/functions/notion.js Ayudante que habla con Notion (corre en Netlify, tiene la clave)
+netlify/functions/plata.mjs Ayudante que lee el Sheet del presupuesto (PIN + llave de Google)
+package.json                Solo @netlify/blobs para plata.mjs (NO es del frontend)
 .github/workflows/          notify.yml (avisos diarios) y build-android.yml (compila el APK)
 
 # La app ANDROID nativa (Capacitor) vive aparte, en android-app/:
@@ -173,9 +179,8 @@ de bordes. Todos los tokens están en `:root` — úsalos, no inventes colores.
 - **Logros:** la estrella del logo (`estrella()` en app.js) marca «Todo al
   día» y los kits completos.
 - **Mosaico de azulejos:** solo en el diálogo «Acerca de QueJuicio» (Ajustes →
-  Acerca de) y en la pestaña Plata mientras no esté disponible (app.js lo
-  clona del de «Acerca de», así que hay un solo SVG). Se probó en la entrada y
-  el estado vacío y no funcionó: no lo pongas en más sitios.
+  Acerca de). Se probó en la entrada, el estado vacío y la pestaña Plata y no
+  funcionó: no lo pongas en más sitios.
 - **Versión:** al publicar cambios, sube `VERSION_APP` y `ULTIMA_ACTUALIZACION`
   al inicio de app.js (se muestran en «Acerca de»).
 - Tareas: grupo «YA TOCA» arriba con las vencidas; al marcar «hecha» el
@@ -186,16 +191,51 @@ de bordes. Todos los tokens están en `:root` — úsalos, no inventes colores.
   opacidad). Antes había un "modo reordenar" que las escondía; se quitó porque
   nadie lo encontraba.
 
+## Plata (en construcción, oct 2026)
+
+El presupuesto de la casa. La fuente de verdad es el Google Sheet
+«Buchhaltung» (pestaña Resumen + Movimientos); **los números nunca van a
+Firestore, al repo (es público), a `localStorage` ni a la caché offline**.
+
+- `netlify/functions/plata.mjs` lee el Sheet con una cuenta de servicio de
+  Google (compartida como Lector, sin roles en el proyecto). Antes de dar un
+  número exige el código de hogar y el PIN de quien entra (`PIN_TANIA` /
+  `PIN_JC`, 4 dígitos); 5 fallos → bloqueo de 15 min que se duplica, con el
+  contador en Netlify Blobs. Con el PIN da una sesión firmada de 15 minutos.
+- `plata.js` dibuja la pestaña con lo que le manda la función (el formato
+  está al inicio del archivo) y lo guarda solo en memoria, igual que la
+  sesión: al vencerse, al tocar el candado o al salir del hogar
+  (`olvidarPlata()`) se borra todo y vuelve a pedir el PIN.
+- Lo que la app necesita del Sheet: la celda **«Datos hasta»** (Resumen!B2,
+  la pone el cierre de mes) y la columna **«Tipo»** del Resumen (S:
+  fijo / variable / anual / ahorro / ingreso). La pestaña abre en el mes de
+  «Datos hasta».
+- El service worker NO cachea `/.netlify/functions/*` (ver
+  firebase-messaging-sw.js): los números no pueden quedar en el teléfono.
+- Secciones (selector arriba): **Mes** (lo gastado contra el presupuesto,
+  categorías con el anillo de Tareas, fijos plegados), **Año** (12 meses,
+  gastos anuales con la marca de «lo que tocaría», ahorros con una baldosa
+  por mes contada por acumulado, y lo que rinde cada euro en Colombia) y
+  **Viajes** (todo lo que lleva la etiqueta del viaje, también lo pagado
+  desde el Fondo Colombia). Tocar una categoría abre su **detalle** (12
+  meses + movimientos del mes). El diseño está fuera del repo, en
+  `Documents\presupuesto\plata-diseno\`.
+- Las gráficas son HTML/CSS/SVG a mano (sin librería). Al tacto no hay
+  globos: arriba de cada gráfica hay una «franja de lectura» con lo tocado.
+  Rejilla, rayas y columnas se miden sobre la misma caja, o no cuadran.
+- Para probar en local sin Netlify hace falta un servidor que imite la
+  función (Python sirve la carpeta, pero no corre `plata.mjs`). Nunca uses
+  números reales en archivos dentro del repo.
+
 ## RECETA: agregar otra pestaña/sección (p. ej. "Notas")
 
 Ojo: la pestaña Kits ya tiene cuatro pantallas internas (lista de kits,
 detalle de kit, lista de plantillas y detalle de plantilla) que `pintarKits()`
 muestra y esconde. No es un molde a copiar tal cual.
 
-Ya hay cuatro pestañas: **Tareas, Compras, Kits y Plata** (esta última es
-un aviso de «pronto», sin datos: cuando se construya de verdad, sigue esta
-receta reemplazando su contenido). Compras (accordions) y Kits (lista +
-detalle) son los mejores moldes a copiar. Pasos:
+Ya hay cuatro pestañas: **Tareas, Compras, Kits y Plata** (esta última no
+usa Firestore: es un módulo aparte, ver «Plata» arriba). Compras (accordions)
+y Kits (lista + detalle) son los mejores moldes a copiar. Pasos:
 
 1. **HTML** ([index.html](index.html)):
    - Dentro de `<main>`, agrega `<div id="vista-notas" hidden>…</div>` junto a
