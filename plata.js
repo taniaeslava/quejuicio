@@ -816,7 +816,13 @@ function pantallaDetalle() {
     };
     datosPie.append(fila(`Promedio ene–${MES_CORTO[completos.length - 1]}`, eur(suma(completos, (v) => v) / completos.length)));
     if (mensual) {
-      datosPie.append(fila("Meses en que se pasaron", `${completos.filter((v) => v > c.presMes).length} de ${completos.length}`));
+      const dif = suma(completos, (v) => v) - (presDelAño(c) / 12) * completos.length;
+      datosPie.append(
+        fila("Meses en que se pasaron", `${completos.filter((v) => v > c.presMes).length} de ${completos.length}`),
+        // Lo mismo que «Gastos mensuales» en el Año, con los meses completos.
+        fila(`${Math.abs(dif) < 0.005 ? "Justo" : dif > 0 ? "Por encima" : "Por debajo"} en ene–${MES_CORTO[completos.length - 1]}`,
+          eur(Math.abs(dif))),
+      );
     }
     card.append(datosPie);
   }
@@ -836,7 +842,7 @@ function pantallaAño() {
   const frag = document.createDocumentFragment();
   frag.append(cabecera("PLATA", String(datos.año), [], `datos hasta el ${fechaCorta(datos.datosHasta)}`));
   if (errorPlata) frag.append(el("p", "plata-nota", `No se pudo actualizar: ${errorPlata}`));
-  frag.append(tarjetaDelAño(), tarjetaAnuales(), tarjetaAhorros());
+  frag.append(tarjetaDelAño(), tarjetaMensuales(), tarjetaAnuales(), tarjetaAhorros());
   if (datos.colombia?.envios?.length) frag.append(tarjetaColombia());
   return frag;
 }
@@ -913,6 +919,120 @@ function tarjetaDelAño() {
   return card;
 }
 
+// El presupuesto del año de una categoría mensual. Sale del anual del Sheet
+// y no de 12 × el mensual, que viene redondeado (100 / 12 = 8,33 y 8,33 × 12 ≠ 100).
+const presDelAño = (c) => c.presAño || (c.presMes || 0) * 12;
+
+// La pista de una fila: lo acumulado contra el total del año y la raya de
+// «lo que tocaría» (sin raya si no hay presupuesto). `pasado` la pinta toda
+// de terracota; `exceso`, solo lo que pasa de la raya.
+function pistaConMarca(acum, pres, tocaria, { pasado = false, exceso = false } = {}) {
+  const pista = el("div", "plata-pista");
+  const lleno = pres > 0 ? Math.min(Math.max(acum, 0) / pres, 1) : 0;
+  const relleno = el("div", `plata-pista-relleno${pasado ? " pasado" : exceso ? " exceso" : ""}`);
+  relleno.style.width = `${lleno * 100}%`;
+  if (exceso && lleno > 0) relleno.style.setProperty("--corte", `${(Math.min(tocaria / pres, 1) / lleno) * 100}%`);
+  pista.append(relleno);
+  const caja = el("div", "plata-pista-caja");
+  caja.append(pista);
+  if (pres > 0) {
+    const marca = el("div", "plata-pista-marca");
+    marca.style.left = `${Math.min(tocaria / pres, 1) * 100}%`;
+    caja.append(marca);
+  }
+  return caja;
+}
+
+// Fijos y variables sumados en el año, contra la suma de sus presupuestos
+// mensuales hasta la fecha de los datos. A diferencia de los anuales, aquí pasar la raya sí es pasarse:
+// el gasto de cada mes es parejo, así que lo que va por encima es plata que
+// no alcanzó. Arriba, el total y cuánto queda por mes para cerrar el año en
+// el presupuesto; abajo, cada categoría (las que van por encima, primero).
+function tarjetaMensuales() {
+  const max = mesMaximo();
+  const cerrados = mesesCerrados();
+  const aMedias = mesAMedias();
+  const parteDelMes = aMedias ? partesFecha(datos.datosHasta).d / diasDelMes(datos.año, max) : 0;
+  const filas = datos.categorias.filter((c) => c.tipo === "fijo" || c.tipo === "variable").map((c) => {
+    const acum = suma(c.meses.slice(0, max), (v) => v);
+    const pres = presDelAño(c);
+    // Como el ritmo del Mes: en el mes a medias los fijos cuentan lo pagado
+    // (si la renta aún no aparece, no hace ver el año «por debajo») y los
+    // variables, su presupuesto por los días que van.
+    const enCurso = !aMedias ? 0 : c.tipo === "fijo" ? (c.meses[max - 1] ?? 0) : (pres / 12) * parteDelMes;
+    const tocaria = (pres / 12) * cerrados + enCurso;
+    return { c, acum, pres, tocaria, dif: acum - tocaria };
+  });
+  const conTope = filas.filter((f) => f.pres > 0);
+  const sinTope = filas.filter((f) => !(f.pres > 0));
+  // Las que van por encima, arriba (las de más euros primero); el resto, en el orden del Sheet.
+  conTope.sort((x, y) => Number(y.dif > 0.004) - Number(x.dif > 0.004) || (y.dif > 0.004 ? y.dif - x.dif : 0));
+
+  const vanEn = (dif) => (Math.abs(dif) < 0.005 ? "Justo en lo presupuestado"
+    : `Van ${eur(Math.abs(dif))} por ${dif > 0 ? "encima" : "debajo"}`);
+  const fila = ({ c, acum, pres, tocaria, dif }, tag = "button") => {
+    const f = el(tag, "plata-barra-fila");
+    const arriba = el("div", "plata-barra-fila-arriba");
+    arriba.append(el("span", "plata-barra-fila-nombre", c ? c.nombre : "Total"),
+      el("span", "plata-barra-fila-meta", `${eur(acum)} de ${eur(pres)}`));
+    const abajo = el("div", "plata-barra-fila-abajo");
+    abajo.append(el("span", dif > 0.004 ? "pasado" : "", vanEn(dif)), el("span", "tenue", `tocaría ${eur(tocaria)}`));
+    f.append(arriba, pistaConMarca(acum, pres, tocaria, { exceso: dif > 0.004 }), abajo);
+    return f;
+  };
+
+  const card = tarjeta("Gastos mensuales");
+  const nota = el("div", "plata-nota-marca");
+  nota.append(el("span", "plata-muestra muestra-marca"),
+    `lo que tocaría al ${fechaCorta(datos.datosHasta)}: el presupuesto de cada mes, sumado`);
+  card.append(nota);
+
+  // El total (también lo que no tiene presupuesto, como en el Mes).
+  const total = {
+    acum: suma(filas, (f) => f.acum),
+    pres: suma(conTope, (f) => f.pres),
+    tocaria: suma(conTope, (f) => f.tocaria),
+  };
+  total.dif = total.acum - total.tocaria;
+  const bloque = fila(total, "div");
+  bloque.classList.add("plata-mensual-total");
+  const queda = total.pres - total.acum;
+  const faltan = 12 - cerrados - parteDelMes; // meses que faltan del año
+  let hallazgo;
+  if (faltan <= 0) {
+    hallazgo = Math.abs(total.dif) < 0.005 ? "Cerraron el año justo en el presupuesto."
+      : `Cerraron el año ${eur(Math.abs(total.dif))} por ${total.dif > 0 ? "encima" : "debajo"} del presupuesto.`;
+  } else if (queda <= 0) {
+    hallazgo = `Ya se gastaron todo el presupuesto mensual del año (${eur(total.pres)}).`;
+  } else {
+    const cuando = aMedias ? "de aquí a diciembre" : faltan === 1 ? "en diciembre" : `de ${NOMBRE_MES[cerrados]} a diciembre`;
+    // El presupuesto del mes, igual que en la pantalla del Mes.
+    const presMes = suma(conTope, (f) => f.c.presMes || f.pres / 12);
+    hallazgo = `Para cerrar el año en el presupuesto les quedan ${eur(queda)}: ${faltan === 1 && !aMedias ? "" : "unos "}${eur(queda / faltan)} al mes ${cuando} (el presupuesto es de ${eur(presMes)} al mes).`;
+  }
+  bloque.append(el("p", "plata-hallazgo", hallazgo));
+  card.append(bloque);
+
+  for (const f of conTope) {
+    const b = fila(f);
+    b.type = "button";
+    b.addEventListener("click", () => abrirDetalle(f.c.nombre, "año"));
+    card.append(b);
+  }
+  for (const { c, acum } of sinTope) {
+    const b = el("button", "plata-barra-fila");
+    b.type = "button";
+    b.addEventListener("click", () => abrirDetalle(c.nombre, "año"));
+    const arriba = el("div", "plata-barra-fila-arriba");
+    arriba.append(el("span", "plata-barra-fila-nombre", c.nombre), el("span", "plata-barra-fila-meta", `${eur(acum)} en el año`));
+    const abajo = el("div", "plata-barra-fila-abajo");
+    abajo.append(el("span", "tenue", "Sin presupuesto · cuenta en el total"));
+    b.append(arriba, abajo);
+    card.append(b);
+  }
+  return card;
+}
+
 // Lo acumulado contra el presupuesto del año, con una marca de «lo que
 // tocaría» a la fecha de los datos. Pasar la marca no es alarma (estos gastos
 // llegan de golpe); solo pasarse del total del año pinta terracota.
@@ -938,23 +1058,12 @@ function tarjetaAnuales() {
     fila.addEventListener("click", () => abrirDetalle(c.nombre, "año"));
     const arriba = el("div", "plata-barra-fila-arriba");
     arriba.append(el("span", "plata-barra-fila-nombre", c.nombre), el("span", "plata-barra-fila-meta", `${eur(acum)} de ${eur(pres)}`));
-    const pista = el("div", "plata-pista");
-    const relleno = el("div", `plata-pista-relleno${pasado ? " pasado" : ""}`);
-    relleno.style.width = pres > 0 ? `${Math.min(Math.max(acum, 0) / pres, 1) * 100}%` : "0%";
-    pista.append(relleno);
-    const caja = el("div", "plata-pista-caja");
-    caja.append(pista);
-    if (pres > 0) {
-      const marca = el("div", "plata-pista-marca");
-      marca.style.left = `${fraccion * 100}%`;
-      caja.append(marca);
-    }
     const abajo = el("div", "plata-barra-fila-abajo");
     const estado = pasado ? `Se pasaron ${eur(acum - pres)}`
       : acum <= 0 ? `Todavía nada · quedan ${eur(pres)}` : `Quedan ${eur(pres - acum)}`;
     abajo.append(el("span", pasado ? "pasado" : acum <= 0 ? "tenue" : "", estado),
       el("span", "tenue", `tocaría ${eur(pres * fraccion)}`));
-    fila.append(arriba, caja, abajo);
+    fila.append(arriba, pistaConMarca(acum, pres, pres * fraccion, { pasado }), abajo);
     card.append(fila);
   }
   return card;

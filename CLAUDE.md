@@ -214,7 +214,9 @@ Firestore, al repo (es público), a `localStorage` ni a la caché offline**.
   firebase-messaging-sw.js): los números no pueden quedar en el teléfono.
 - Secciones (selector arriba): **Mes** (lo gastado contra el presupuesto,
   categorías con el anillo de Tareas, fijos plegados), **Año** (12 meses,
-  gastos anuales con la marca de «lo que tocaría», ahorros con una baldosa
+  gastos mensuales sumados contra su presupuesto hasta la fecha y lo que
+  queda por mes para cerrar el año, gastos anuales con la marca de «lo que
+  tocaría», ahorros con una baldosa
   por mes contada por acumulado, y lo que rinde cada euro en Colombia) y
   **Viajes** (todo lo que lleva la etiqueta del viaje, también lo pagado
   desde el Fondo Colombia). Tocar una categoría abre su **detalle** (12

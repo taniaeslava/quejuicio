@@ -982,9 +982,15 @@ button.plata-barra-fila { cursor: pointer; }
 .plata-pista.fina { height: 8px; margin-top: 6px; }
 .plata-pista-relleno { height: 100%; background: var(--cobalto); border-radius: 0 4px 4px 0; }
 .plata-pista-relleno.pasado { background: var(--terracota); }
+/* hasta la raya, cobalto; lo que pasa de ella, terracota (--corte lo pone plata.js) */
+.plata-pista-relleno.exceso { background: linear-gradient(to right, var(--cobalto) var(--corte), var(--terracota) var(--corte)); }
 .plata-pista-relleno.ahorro { background: var(--ahorro); }
 .plata-pista-relleno.comision { background: var(--muted); }
 .plata-pista-marca { position: absolute; top: 0; width: 2px; height: 22px; margin-left: -1px; border-radius: 1px; background: var(--tinta); }
+/* gastos mensuales en el año: el total va primero, con su conclusión */
+.plata-mensual-total { padding-bottom: 16px; }
+.plata-mensual-total .plata-barra-fila-nombre { font-weight: 600; }
+.plata-mensual-total .plata-hallazgo { margin-top: 10px; }
 
 /* ahorros: una baldosita por mes */
 .plata-baldosas { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; margin-top: 12px; }

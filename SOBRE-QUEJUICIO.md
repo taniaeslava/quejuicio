@@ -127,8 +127,10 @@ vivo, sin copiarlos a ningún lado.
   se borran del teléfono.
 - **Mes:** cuánto se ha gastado del presupuesto mensual y cada categoría con
   su anillo (verde, ámbar o terracota, como las tareas).
-- **Año:** los 12 meses, los gastos anuales (viajes, regalos…), los ahorros
-  mes a mes y cuánto rinde cada euro que se manda a Colombia.
+- **Año:** los 12 meses; cómo van los gastos de cada mes contra el
+  presupuesto del año (y cuánto queda por mes para cerrarlo bien); los gastos
+  anuales (viajes, regalos…), los ahorros mes a mes y cuánto rinde cada euro
+  que se manda a Colombia.
 - **Viajes:** cuánto costó cada viaje y en qué se fue la plata.
 - Tocar una categoría muestra sus 12 meses y sus movimientos.
 
