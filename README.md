@@ -30,6 +30,7 @@ quejuicio/
 ├── index.html                 entrada + pestañas (tareas / compras) + diálogos
 ├── style.css                  estilo azulejo (crema, cobalto, terracota)
 ├── app.js                     lógica: Firestore, tareas, lista de compras, push
+├── coneja.js                  pestaña Coneja (calendario y números del juego)
 ├── config.js                  ⚠️ pega aquí la config de TU proyecto Firebase
 ├── firebase-messaging-sw.js   service worker: push + caché offline + instalable como WebAPK
 │                               ⚠️ duplica la config (los SW no importan módulos)
@@ -51,6 +52,7 @@ households/{codigo}/stores/{storeId}   { name, createdAt }               ← tie
 households/{codigo}/pantry/{clave}     { name, store, lastBought }       ← memoria para autocompletar
 households/{codigo}/prefs/general      { storeOrder: [nombres…] }        ← orden manual de las tiendas
 households/{codigo}/kits/{kitId}       { name, order, items:[{id,label,cat}], checked:{id:true} }  ← listas "no olvidar nada"
+households/{codigo}/conejas/{id}       { fecha: "2026-10-14", tipo: "regular"|"linguismo", estructura, momento?, lugar?, nota?, createdAt }  ← cada partida de Coneja
 ```
 
 Los artículos llevan un campo `order` numérico para el orden manual; las
@@ -68,7 +70,7 @@ las sugerencias del autocompletado.
 
 > ⚠️ Cada vez que se agrega una colección nueva **hay que volver a publicar las
 > reglas** — [firestore.rules](firestore.rules) cubre `tasks`, `tokens`,
-> `shopping`, `stores`, `pantry`, `prefs` y `kits`. Sin eso, esa función da
+> `shopping`, `stores`, `pantry`, `prefs`, `kits`, `plantillas` y `conejas`. Sin eso, esa función da
 > error de permisos.
 
 ---

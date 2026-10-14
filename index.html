@@ -137,6 +137,9 @@
 
       <!-- ── Vista: Plata (el presupuesto; la dibuja plata.js al abrirla) ── -->
       <div id="vista-plata" hidden></div>
+
+      <!-- ── Vista: Coneja (cuántas veces jugamos; la dibuja coneja.js) ── -->
+      <div id="vista-coneja" hidden></div>
     </main>
 
     <button id="btn-nueva" class="fab" type="button" aria-label="Nueva tarea"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -166,6 +169,12 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>
         </span>
         <span class="tab-texto">Plata</span>
+      </button>
+      <button id="tab-coneja" class="tab" type="button">
+        <span class="tab-icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 10.2C8 7.6 7.4 3.4 8.9 3c1.6-.4 2.6 3.6 2.6 6.6"/><path d="M14.5 10.2c1.5-2.6 2.1-6.8.6-7.2-1.6-.4-2.6 3.6-2.6 6.6"/><ellipse cx="12" cy="15.5" rx="6" ry="5.5"/><path d="M10 14.6h.01M14 14.6h.01M11.2 17.4 12 18l.8-.6"/></svg>
+        </span>
+        <span class="tab-texto">Coneja</span>
       </button>
     </nav>
   </section>
@@ -300,6 +309,59 @@
         <button type="submit" class="btn btn-primario">Guardar</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- ── Diálogo: anotar / corregir una coneja ───────────── -->
+  <dialog id="dialogo-coneja">
+    <form id="form-coneja" method="dialog">
+      <h2 id="titulo-dialogo-coneja">Nueva coneja</h2>
+      <div class="tile-band tile-band-fina" aria-hidden="true"></div>
+      <label for="coneja-fecha">¿Qué día?</label>
+      <input id="coneja-fecha" type="date" required />
+      <p class="dialogo-etiqueta" id="titulo-coneja-tipo">Tipo</p>
+      <div class="selector-tema selector-dos" role="radiogroup" aria-labelledby="titulo-coneja-tipo">
+        <label><input type="radio" name="coneja-tipo" value="regular" />Regular</label>
+        <label><input type="radio" name="coneja-tipo" value="linguismo" />Lingüismo</label>
+      </div>
+      <p class="dialogo-etiqueta" id="titulo-coneja-estructura">¿Con estructura?</p>
+      <div class="selector-tema selector-dos" role="radiogroup" aria-labelledby="titulo-coneja-estructura">
+        <label><input type="radio" name="coneja-estructura" value="si" />Sí</label>
+        <label><input type="radio" name="coneja-estructura" value="no" />No</label>
+      </div>
+      <p class="dialogo-etiqueta" id="titulo-coneja-momento">¿A qué hora? <span class="opcional">opcional</span></p>
+      <div class="selector-tema" role="radiogroup" aria-labelledby="titulo-coneja-momento">
+        <label><input type="radio" name="coneja-momento" value="manana" />Mañana</label>
+        <label><input type="radio" name="coneja-momento" value="tarde" />Tarde</label>
+        <label><input type="radio" name="coneja-momento" value="noche" />Noche</label>
+      </div>
+      <label for="coneja-lugar">¿Dónde? <span class="opcional">opcional</span></label>
+      <input id="coneja-lugar" type="text" maxlength="60" autocomplete="off"
+             placeholder="ej. Casa, Cartagena, donde los amigos" />
+      <div id="coneja-lugares" class="coneja-lugares"></div>
+      <label for="coneja-nota">¿Algo para recordar? <span class="opcional">opcional</span></label>
+      <input id="coneja-nota" type="text" maxlength="140" autocomplete="off"
+             placeholder="Sale en el resumen del año" />
+      <div class="dialogo-acciones">
+        <button type="button" id="btn-eliminar-coneja" class="btn btn-peligro" hidden>Borrar</button>
+        <span class="separador-flexible"></span>
+        <button type="button" id="btn-cancelar-coneja" class="btn">Cancelar</button>
+        <button type="submit" class="btn btn-primario">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── Diálogo: las conejas de un día ──────────────────── -->
+  <dialog id="dialogo-coneja-dia">
+    <div class="dialogo-cuerpo">
+      <h2 id="titulo-coneja-dia"></h2>
+      <div class="tile-band tile-band-fina" aria-hidden="true"></div>
+      <div id="lista-coneja-dia" class="coneja-lista-dia"></div>
+      <button id="btn-otra-coneja" class="fila-punteada con-ico" type="button"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Otra coneja este día</button>
+      <div class="dialogo-acciones">
+        <span class="separador-flexible"></span>
+        <button id="btn-cerrar-coneja-dia" class="btn" type="button">Cerrar</button>
+      </div>
+    </div>
   </dialog>
 
   <!-- ── Diálogo: ajustes ────────────────────────────────── -->

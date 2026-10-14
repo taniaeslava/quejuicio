@@ -11,13 +11,14 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 import { firebaseConfig, VAPID_KEY } from "./config.js";
 import { abrirPlata, olvidarPlata } from "./plata.js";
+import { configurarConeja, pintarConeja, errorConeja, olvidarConeja, nuevaConeja } from "./coneja.js";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Se muestran en Ajustes → Acerca de. Súbelos a mano en cada versión.
-const VERSION_APP = "2.3";
-const ULTIMA_ACTUALIZACION = "7 de octubre de 2026";
+const VERSION_APP = "2.4";
+const ULTIMA_ACTUALIZACION = "14 de octubre de 2026";
 
 const DIA_MS = 86_400_000;
 const HISTORIAL_MAX = 10;
@@ -89,6 +90,10 @@ let viendoPlantillas = false;   // true = pantalla con la lista de plantillas
 let snapPrefsLista = false;     // ¿ya llegó el primer snapshot de prefs?
 let snapPlantillasLista = false;// ¿ya llegó el primer snapshot de plantillas?
 let plantillasSembradas = false;// bandera guardada en prefs/general
+
+// ── Coneja (cada partida del juego; la pestaña la dibuja coneja.js) ──
+let desuscribirConejas = null;
+let vistaActual = "tareas";
 const TIENDAS_DEFECTO = ["Edeka", "Ikea", "Amazon", "Tedi"];
 const tiendasAbiertas = new Set(
   JSON.parse(localStorage.getItem("queJuicio.tiendasAbiertas") || "[]"),
@@ -127,6 +132,7 @@ const coleccionDespensa = () => collection(db, "households", codigoHogar, "pantr
 const docPrefs = () => doc(db, "households", codigoHogar, "prefs", "general");
 const coleccionKits = () => collection(db, "households", codigoHogar, "kits");
 const coleccionPlantillas = () => collection(db, "households", codigoHogar, "plantillas");
+const coleccionConejas = () => collection(db, "households", codigoHogar, "conejas");
 
 // Un kit y una plantilla tienen la misma forma; solo cambia dónde viven.
 const buscarKit = (id) => kits.find((k) => k.id === id) || plantillas.find((p) => p.id === id);
@@ -189,6 +195,14 @@ function entrarAlHogar(codigo) {
     // Lo más probable: falta publicar la regla de 'plantillas' en Firestore.
     console.error("plantillas:", err);
   });
+  desuscribirConejas?.();
+  desuscribirConejas = onSnapshot(coleccionConejas(), (snap) => {
+    pintarConeja(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  }, (err) => {
+    // Lo más probable: falta publicar la regla de 'conejas' en Firestore.
+    console.error("conejas:", err);
+    errorConeja();
+  });
 
   // Pintar ya el estado inicial, sin esperar a Firestore.
   pintarCompras();
@@ -204,7 +218,8 @@ function salirDelHogar() {
   desuscribirPrefs?.();
   desuscribirKits?.();
   desuscribirPlantillas?.();
-  desuscribir = desuscribirCompras = desuscribirTiendas = desuscribirDespensa = desuscribirPrefs = desuscribirKits = desuscribirPlantillas = null;
+  desuscribirConejas?.();
+  desuscribir = desuscribirCompras = desuscribirTiendas = desuscribirDespensa = desuscribirPrefs = desuscribirKits = desuscribirPlantillas = desuscribirConejas = null;
   localStorage.removeItem("queJuicio.hogar");
   codigoHogar = "";
   tareas = [];
@@ -219,6 +234,7 @@ function salirDelHogar() {
   viendoPlantillas = false;
   snapPrefsLista = snapPlantillasLista = plantillasSembradas = false;
   olvidarPlata();
+  olvidarConeja();
   mostrarVista("tareas");
   $("#dialogo-ajustes").close();
   $("#pantalla-principal").hidden = true;
@@ -519,18 +535,22 @@ async function eliminarTarea() {
   $("#dialogo-tarea").close();
 }
 
-/* ── Pestañas: Tareas / Compras / Kits / Plata ── */
+/* ── Pestañas: Tareas / Compras / Kits / Plata / Coneja ── */
 function mostrarVista(cual) {
-  const vistas = ["tareas", "compras", "kits", "plata"];
+  const vistas = ["tareas", "compras", "kits", "plata", "coneja"];
   if (!vistas.includes(cual)) cual = "tareas";
+  vistaActual = cual;
   for (const v of vistas) {
     $(`#vista-${v}`).hidden = v !== cual;
     $(`#tab-${v}`).classList.toggle("activa", v === cual);
   }
-  $("#btn-nueva").hidden = cual !== "tareas"; // el FAB "+" es solo para tareas
+  // El FAB "+" es de Tareas (nueva tarea) y de Coneja (anotar una coneja).
+  $("#btn-nueva").hidden = cual !== "tareas" && cual !== "coneja";
+  $("#btn-nueva").setAttribute("aria-label", cual === "coneja" ? "Anotar una coneja" : "Nueva tarea");
   localStorage.setItem("queJuicio.vista", cual);
   // Plata no está en Firestore: sus números se piden al abrirla (plata.js).
   if (cual === "plata") abrirPlata(codigoHogar);
+  if (cual === "coneja") pintarConeja(); // por si cambió el día desde la última vez
 }
 
 /* ── Lista de compras ── */
@@ -1954,7 +1974,7 @@ $("#form-entrada").addEventListener("submit", (ev) => {
   if (codigo.length >= 8) entrarAlHogar(codigo);
 });
 
-$("#btn-nueva").addEventListener("click", () => abrirDialogoTarea());
+$("#btn-nueva").addEventListener("click", () => (vistaActual === "coneja" ? nuevaConeja() : abrirDialogoTarea()));
 $("#btn-primera-tarea").addEventListener("click", () => abrirDialogoTarea());
 $("#btn-semilla").addEventListener("click", crearTareasIniciales);
 $("#tarea-unidad").addEventListener("change", actualizarCamposFrecuencia);
@@ -2019,6 +2039,15 @@ $("#form-kit-renombrar").addEventListener("submit", (ev) => { ev.preventDefault(
 $("#btn-cancelar-renombrar").addEventListener("click", () => $("#dialogo-kit-renombrar").close());
 // Plata (el presupuesto; ver plata.js)
 $("#tab-plata").addEventListener("click", () => mostrarVista("plata"));
+// Coneja (ver coneja.js): solo dibuja; las escrituras se las presta app.js.
+$("#tab-coneja").addEventListener("click", () => mostrarVista("coneja"));
+configurarConeja({
+  guardar: (id, datos) => (id
+    ? updateDoc(doc(coleccionConejas(), id), datos)
+    : addDoc(coleccionConejas(), { ...datos, createdAt: serverTimestamp() })),
+  borrar: (id) => deleteDoc(doc(coleccionConejas(), id)),
+  avisar,
+});
 $("#btn-notificaciones").addEventListener("click", activarNotificaciones);
 $("#btn-salir").addEventListener("click", () => {
   if (confirm("¿Salir del hogar en este teléfono? Las tareas siguen guardadas.")) {

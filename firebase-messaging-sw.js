@@ -46,13 +46,14 @@ self.addEventListener("notificationclick", (event) => {
    Sube el número de versión cuando cambies archivos y quieras forzar caché
    nueva. La estrategia es "red primero": si hay internet siempre ves lo
    último; si no, se sirve lo guardado. */
-const CACHE = "quejuicio-v4";
+const CACHE = "quejuicio-v5";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
   "./plata.js",
+  "./coneja.js",
   "./config.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",

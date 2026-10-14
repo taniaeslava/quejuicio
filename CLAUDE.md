@@ -8,10 +8,10 @@
 ## Qué es
 
 QueJuicio es una PWA casera y compartida para dos personas (una pareja). Tiene
-tres secciones: **Tareas** del hogar (recurrentes y de una sola vez, con avisos),
-**Compras** por tiendas y **Kits** (listas para no olvidar nada al preparar algo,
-por categorías). Hay una cuarta pestaña, **Plata** (el presupuesto de la casa),
-**en construcción** (ver «Plata» más abajo). Todo se sincroniza entre los dos teléfonos por Firestore. Para el "qué y por qué" en lenguaje humano, ver
+cinco secciones: **Tareas** del hogar (recurrentes y de una sola vez, con avisos),
+**Compras** por tiendas, **Kits** (listas para no olvidar nada al preparar algo,
+por categorías), **Plata** (el presupuesto de la casa, **en construcción**: ver
+«Plata» más abajo) y **Coneja** (cuántas veces jugamos ese juego: ver «Coneja»). Todo se sincroniza entre los dos teléfonos por Firestore. Para el "qué y por qué" en lenguaje humano, ver
 [SOBRE-QUEJUICIO.md](SOBRE-QUEJUICIO.md). Para la instalación/configuración, ver
 [README.md](README.md).
 
@@ -62,10 +62,11 @@ por categorías). Hay una cuarta pestaña, **Plata** (el presupuesto de la casa)
 ## Mapa de archivos
 
 # La app WEB (lo que ven los teléfonos) vive en la raíz:
-index.html                  Pantalla de entrada + pantalla principal (4 vistas: tareas/compras/kits/plata) + diálogos
+index.html                  Pantalla de entrada + pantalla principal (5 vistas: tareas/compras/kits/plata/coneja) + diálogos
 style.css                   Estilo azulejo; tokens de color en :root
-app.js                      Toda la lógica del frontend, menos Plata
+app.js                      Toda la lógica del frontend, menos Plata y Coneja
 plata.js                    Pestaña Plata (módulo aparte: sus datos no vienen de Firestore)
+coneja.js                   Pestaña Coneja (solo dibuja; la suscripción y las escrituras las hace app.js)
 config.js                   Config de Firebase (claves públicas; no es secreto)
 firebase-messaging-sw.js    Service worker: push + caché offline
 manifest.webmanifest        Manifiesto PWA
@@ -122,6 +123,7 @@ households/{codigo}/pantry/{clave}  { name, store, lastBought }
 households/{codigo}/prefs/general   { storeOrder: [...] }
 households/{codigo}/kits/{id}       { name, order, createdAt, items:[{id,label,cat}], checked:{itemId:true} }
 households/{codigo}/plantillas/{id} { name, order, createdAt, items:[{id,label,cat}] }
+households/{codigo}/conejas/{id}    { fecha: "2026-10-14", tipo: "regular"|"linguismo"|null, estructura: bool|null, momento?, lugar?, nota?, origen?: "loop", createdAt }
 ```
 
 Kits = listas reutilizables para no olvidar nada (asado, viaje, playa, picnic…).
@@ -229,14 +231,47 @@ Firestore, al repo (es público), a `localStorage` ni a la caché offline**.
   función (Python sirve la carpeta, pero no corre `plata.mjs`). Nunca uses
   números reales en archivos dentro del repo.
 
+## Coneja (oct 2026)
+
+Para saber qué tan seguido jugamos Coneja. Cada partida es un documento en
+`conejas/` con `fecha` como **texto «año-mes-día» del día local** (no un
+Timestamp: así no se corre de día con la zona horaria; compara con `<`/`>`
+como texto). `tipo` es `"regular"` o `"linguismo"` (sin tilde en el dato, con
+tilde en la UI) y `estructura` es `true`/`false`. Opcionales (faltan o son
+`null`): `momento` (`"manana"`/`"tarde"`/`"noche"`; se pone solo si la coneja
+es de hoy), `lugar` (texto libre; el diálogo ofrece los más usados) y `nota`
+(algo para recordar). Las de 2019 a oct 2026 se importaron de Loop Habits
+(id `loop-AAAA-MM-DD`, `origen: "loop"`): solo dicen el día, una por día, con
+`tipo` y `estructura` en `null` («sin detalle»); todo lo que cuente por tipo
+o estructura las deja aparte. **Se piden pensando en un resumen del año («Wrapped»)
+que se hará en diciembre de 2026**: no quites campos sin preguntar, porque lo
+que no se anota hoy no se puede recuperar después.
+
+- `coneja.js` solo dibuja: `entrarAlHogar` se suscribe y le pasa la lista a
+  `pintarConeja(lista)`; las escrituras van por las funciones que app.js le
+  presta con `configurarConeja({ guardar, borrar, avisar })`.
+- Calendario del mes (lunes primero): un puntico si hubo una coneja, el
+  número en una pastilla si hubo varias. Días futuros deshabilitados. Tocar
+  un día vacío abre «Nueva coneja» con ese día; uno con conejas abre el
+  diálogo del día para corregirlas.
+- El FAB `#btn-nueva` sirve en Tareas y en Coneja (`vistaActual` decide qué
+  abre). El último tipo/estructura anotado se recuerda por teléfono en
+  `localStorage` (`queJuicio.conejaUltima`).
+- Debajo: «AAAA en 12 meses» (barritas del año anterior al lado si hay datos,
+  filtro por tipo/estructura, tocar un mes lleva el calendario a ese mes) y
+  «Datos curiosos». Reusa las clases de Plata (`.plata-card`,
+  `.plata-cabecera`, `.plata-graf`, `.plata-franja`…): si cambias esas,
+  revisa también Coneja.
+
 ## RECETA: agregar otra pestaña/sección (p. ej. "Notas")
 
 Ojo: la pestaña Kits ya tiene cuatro pantallas internas (lista de kits,
 detalle de kit, lista de plantillas y detalle de plantilla) que `pintarKits()`
 muestra y esconde. No es un molde a copiar tal cual.
 
-Ya hay cuatro pestañas: **Tareas, Compras, Kits y Plata** (esta última no
-usa Firestore: es un módulo aparte, ver «Plata» arriba). Compras (accordions)
+Ya hay cinco pestañas: **Tareas, Compras, Kits, Plata y Coneja** (Plata no
+usa Firestore: es un módulo aparte, ver «Plata» arriba). Con cinco la barra
+de abajo está llena: una sexta sección pide replantear la navegación. Compras (accordions)
 y Kits (lista + detalle) son los mejores moldes a copiar. Pasos:
 
 1. **HTML** ([index.html](index.html)):
@@ -247,7 +282,7 @@ y Kits (lista + detalle) son los mejores moldes a copiar. Pasos:
 
 2. **Cambio de pestaña** ([app.js](app.js), función `mostrarVista`):
    - Ya está generalizada: agrega `"notas"` al array `vistas` y listo (recuerda
-     que el FAB `#btn-nueva` es solo de Tareas).
+     que el FAB `#btn-nueva` es solo de Tareas y Coneja).
    - Agrega el listener: `$("#tab-notas").addEventListener("click", () => mostrarVista("notas"));`
 
 3. **Datos** (si la pestaña guarda cosas en Firestore):

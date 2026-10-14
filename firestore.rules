@@ -87,6 +87,29 @@ service cloud.firestore {
         && request.resource.data.name.size() <= 80;
     }
 
+    // Coneja: cada partida del juego. fecha = día local «2026-10-14» (texto,
+    // para que no se corra con la zona horaria). momento, lugar y nota son
+    // opcionales (pueden faltar o ser null). Las importadas de Loop Habits
+    // (origen 'loop') no tienen tipo ni estructura: van en null.
+    match /households/{code}/conejas/{conejaId} {
+      allow read, delete: if true;
+      allow create, update: if conejaValida();
+
+      function conejaValida() {
+        let d = request.resource.data;
+        return d.fecha is string
+          && d.fecha.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && d.get('tipo', null) in [null, 'regular', 'linguismo']
+          && (d.get('estructura', null) == null || d.estructura is bool)
+          && d.get('origen', null) in [null, 'loop']
+          && d.get('momento', null) in [null, 'manana', 'tarde', 'noche']
+          && (d.get('lugar', null) == null
+              || (d.lugar is string && d.lugar.size() <= 60))
+          && (d.get('nota', null) == null
+              || (d.nota is string && d.nota.size() <= 140));
+      }
+    }
+
     // Todo lo demás (incluido el documento del hogar y cualquier
     // intento de leer/escribir fuera de estas rutas): denegado.
     match /{document=**} {

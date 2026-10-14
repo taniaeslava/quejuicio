@@ -47,10 +47,10 @@ teléfonos a la misma información.
 
 ---
 
-## Las cuatro secciones
+## Las cinco secciones
 
-Abajo de la pantalla hay cuatro pestañas: **Tareas**, **Compras**, **Kits** y
-**Plata**.
+Abajo de la pantalla hay cinco pestañas: **Tareas**, **Compras**, **Kits**,
+**Plata** y **Coneja**.
 
 ### 📋 Tareas
 
@@ -135,6 +135,22 @@ vivo, sin copiarlos a ningún lado.
 - Tocar una categoría muestra sus 12 meses y sus movimientos.
 
 Se actualiza cuando se cierra el mes en el Sheet (en viaje, más seguido).
+
+### 🐇 Coneja
+
+Para saber qué tan seguido jugamos **Coneja**.
+
+- Un **calendario** del mes: un puntico el día que hubo una coneja y el
+  número si hubo varias.
+- Se anota con el **+** (o tocando el día): qué día, el **tipo** (regular o
+  lingüismo) y si tuvo **estructura**. Si quieren, también **a qué hora**
+  (si es de hoy se pone solo), **dónde** y **algo para recordar**: con eso se
+  arma el resumen del año en diciembre. Tocar un día con conejas las muestra
+  para corregirlas o borrarlas.
+- Debajo, los **números**: cuántas en el mes comparado con el anterior, el
+  año en 12 meses al lado del año pasado (filtrando por tipo o estructura),
+  y datos curiosos: la racha más larga, el récord en un día y el día de la
+  semana en que más se juega.
 
 ---
 
