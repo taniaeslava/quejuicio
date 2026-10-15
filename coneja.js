@@ -524,7 +524,10 @@ function tarjetaCuriosos(h) {
   if (!delAñoVisto.length) return null;
   const porDia = agruparPorDia(delAñoVisto);
   const fechas = [...porDia.keys()].sort();
-  const filas = [["Días con coneja", plural(fechas.length, "día", "días")]];
+  const filas = [
+    ["Conejas en total", plural(delAñoVisto.length, "coneja", "conejas")],
+    ["Días con coneja", plural(fechas.length, "día", "días")],
+  ];
 
   let racha = { n: 1, desde: fechas[0] }, actual = { ...racha };
   for (let i = 1; i < fechas.length; i++) {
