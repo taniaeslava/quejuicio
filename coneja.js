@@ -417,7 +417,7 @@ function tarjetaAño(h) {
   }
   if (hayAntes) {
     const ley = el("div", "plata-leyenda-linea");
-    for (const [muestra, texto] of [["muestra-variables", String(a)], ["coneja-muestra-antes", String(a - 1)]]) {
+    for (const [muestra, texto] of [["coneja-muestra-este", String(a)], ["coneja-muestra-antes", String(a - 1)]]) {
       const item = el("span");
       item.append(el("span", `plata-muestra ${muestra}`), texto);
       ley.append(item);

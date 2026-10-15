@@ -1103,7 +1103,7 @@ button.plata-barra-fila { cursor: pointer; }
 .coneja-sin-detalle { font-size: 13px; color: var(--muted); }
 .coneja-año-titulo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
-/* el año en 12 meses: este año en cobalto y, al lado, el anterior apagado */
+/* el año en 12 meses: este año en terracota y, al lado, el anterior apagado */
 .coneja-filtros { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .coneja-chip {
   border: none; border-radius: 999px; padding: 0.4rem 0.8rem;
@@ -1115,12 +1115,13 @@ button.plata-barra-fila { cursor: pointer; }
 .coneja-letras { margin-left: 24px; }
 .coneja-barra {
   position: absolute; left: 50%; bottom: 0; width: 14px; margin-left: -7px;
-  border-radius: 4px 4px 0 0; background: var(--cobalto);
+  border-radius: 4px 4px 0 0; background: var(--terracota);
 }
 .coneja-barra.antes { width: 7px; margin-left: -8px; background: var(--muted); opacity: 0.45; }
 .coneja-barra.este { width: 7px; margin-left: 1px; }
 .coneja-barra.porvenir { height: 100%; background: none; border: 1.5px dashed var(--gris-punteado); border-radius: 4px; }
 .coneja-muestra-antes { background: var(--muted); opacity: 0.45; }
+.coneja-muestra-este { background: var(--terracota); }
 
 /* las conejas de un día (diálogo): una baldosita con el número de cada una */
 .coneja-lista-dia { margin-bottom: 4px; }
