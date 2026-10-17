@@ -123,7 +123,7 @@ households/{codigo}/pantry/{clave}  { name, store, lastBought }
 households/{codigo}/prefs/general   { storeOrder: [...] }
 households/{codigo}/kits/{id}       { name, order, createdAt, items:[{id,label,cat}], checked:{itemId:true} }
 households/{codigo}/plantillas/{id} { name, order, createdAt, items:[{id,label,cat}] }
-households/{codigo}/conejas/{id}    { fecha: "2026-10-14", tipo: "regular"|"linguismo"|null, estructura: bool|null, momento?, lugar?, nota?, origen?: "loop", createdAt }
+households/{codigo}/conejas/{id}    { fecha: "2026-10-14", tipo: "regular"|"linguismo"|null, estructura: bool|null, ganador?, momento?, lugar?, nota?, origen?: "loop", createdAt }
 ```
 
 Kits = listas reutilizables para no olvidar nada (asado, viaje, playa, picnic…).
@@ -237,7 +237,9 @@ Para saber qué tan seguido jugamos Coneja. Cada partida es un documento en
 `conejas/` con `fecha` como **texto «año-mes-día» del día local** (no un
 Timestamp: así no se corre de día con la zona horaria; compara con `<`/`>`
 como texto). `tipo` es `"regular"` o `"linguismo"` (sin tilde en el dato, con
-tilde en la UI) y `estructura` es `true`/`false`. Opcionales (faltan o son
+tilde en la UI) y `estructura` es `true`/`false`. `ganador` (`"tania"`/`"jc"`/
+`"empate"`) se exige al anotar una nueva (desde el 17 oct 2026) y nunca viene
+marcado por defecto; las anteriores no lo tienen. Opcionales (faltan o son
 `null`): `momento` (`"manana"`/`"tarde"`/`"noche"`; se pone solo si la coneja
 es de hoy), `lugar` (texto libre; el diálogo ofrece los más usados) y `nota`
 (algo para recordar). Las de 2019 a oct 2026 se importaron de Loop Habits

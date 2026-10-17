@@ -89,7 +89,8 @@ service cloud.firestore {
 
     // Coneja: cada partida del juego. fecha = día local «2026-10-14» (texto,
     // para que no se corra con la zona horaria). momento, lugar y nota son
-    // opcionales (pueden faltar o ser null). Las importadas de Loop Habits
+    // opcionales (pueden faltar o ser null), y también ganador (la app lo
+    // exige al anotar una nueva, no al corregir). Las importadas de Loop Habits
     // (origen 'loop') no tienen tipo ni estructura: van en null.
     match /households/{code}/conejas/{conejaId} {
       allow read, delete: if true;
@@ -102,6 +103,7 @@ service cloud.firestore {
           && d.get('tipo', null) in [null, 'regular', 'linguismo']
           && (d.get('estructura', null) == null || d.estructura is bool)
           && d.get('origen', null) in [null, 'loop']
+          && d.get('ganador', null) in [null, 'tania', 'jc', 'empate']
           && d.get('momento', null) in [null, 'manana', 'tarde', 'noche']
           && (d.get('lugar', null) == null
               || (d.lugar is string && d.lugar.size() <= 60))

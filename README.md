@@ -52,7 +52,7 @@ households/{codigo}/stores/{storeId}   { name, createdAt }               ← tie
 households/{codigo}/pantry/{clave}     { name, store, lastBought }       ← memoria para autocompletar
 households/{codigo}/prefs/general      { storeOrder: [nombres…] }        ← orden manual de las tiendas
 households/{codigo}/kits/{kitId}       { name, order, items:[{id,label,cat}], checked:{id:true} }  ← listas "no olvidar nada"
-households/{codigo}/conejas/{id}       { fecha: "2026-10-14", tipo: "regular"|"linguismo", estructura, momento?, lugar?, nota?, createdAt }  ← cada partida de Coneja
+households/{codigo}/conejas/{id}       { fecha: "2026-10-14", tipo: "regular"|"linguismo", estructura, ganador?, momento?, lugar?, nota?, createdAt }  ← cada partida de Coneja
 ```
 
 Los artículos llevan un campo `order` numérico para el orden manual; las

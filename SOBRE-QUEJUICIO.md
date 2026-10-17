@@ -143,7 +143,8 @@ Para saber qué tan seguido jugamos **Coneja**.
 - Un **calendario** del mes: un puntico el día que hubo una coneja y el
   número si hubo varias.
 - Se anota con el **+** (o tocando el día): qué día, el **tipo** (regular o
-  lingüismo) y si tuvo **estructura**. Si quieren, también **a qué hora**
+  lingüismo), si tuvo **estructura** y **quién ganó** (Tania, JC o empate). Si
+  quieren, también **a qué hora**
   (si es de hoy se pone solo), **dónde** y **algo para recordar**: con eso se
   arma el resumen del año en diciembre. Tocar un día con conejas las muestra
   para corregirlas o borrarlas.

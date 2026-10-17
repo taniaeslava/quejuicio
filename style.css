@@ -1095,12 +1095,14 @@ button.plata-barra-fila { cursor: pointer; }
 .coneja-pista { display: flex; gap: 2px; height: 10px; border-radius: 4px; overflow: hidden; background: var(--ring-track); }
 .coneja-pista-a { background: var(--cobalto); }
 .coneja-pista-b { background: var(--ahorro); }
+.coneja-pista-empate { background: var(--muted); opacity: 0.45; }
 .coneja-reparto-textos {
   display: flex; justify-content: space-between; gap: 10px; margin-top: 5px;
   font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
 }
 .coneja-reparto-textos strong { font-weight: 600; color: var(--tinta); }
 .coneja-sin-detalle { font-size: 13px; color: var(--muted); }
+.coneja-falta { margin: 0.4rem 0 0; font-size: 0.85rem; color: var(--terracota-text); }
 .coneja-año-titulo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 /* el año en 12 meses: este año en terracota y, al lado, el anterior apagado */

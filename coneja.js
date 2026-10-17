@@ -2,10 +2,13 @@
 //
 // Cada partida es un documento en households/{codigo}/conejas/{id}:
 //   { fecha: "2026-10-14", tipo: "regular" | "linguismo", estructura: true | false,
+//     ganador: "tania" | "jc" | "empate" | null,
 //     momento: "manana" | "tarde" | "noche" | null, lugar: "Casa" | null, nota: "…" | null,
 //     createdAt }
 // La fecha va como texto «año-mes-día» del día local, no como Timestamp: así
 // una coneja de las 11 de la noche no se corre de día por la zona horaria.
+// Quién ganó es obligatorio al anotar una nueva (desde oct 2026); las de antes
+// no lo tienen y al corregirlas sigue siendo opcional.
 // Las importadas de Loop Habits (el registro de 2019 a oct 2026) solo dicen
 // el día: llevan origen: "loop" y tipo y estructura en null («sin detalle»);
 // las estadísticas por tipo o estructura las dejan aparte.
@@ -31,6 +34,7 @@ const LETRAS_MES = ["E", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
 const NOMBRE_DIA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 const TIPOS = { regular: "Regular", linguismo: "Lingüismo" };
 const MOMENTOS = { manana: "Mañana", tarde: "Tarde", noche: "Noche" };
+const GANADORES = { tania: "Tania", jc: "JC", empate: "Empate" };
 const FILTROS = [
   ["todas", "Todas", () => true],
   ["regular", "Regular", (c) => c.tipo === "regular"],
@@ -117,6 +121,9 @@ export function nuevaConeja(fecha = hoy().iso, coneja = null) {
   marcarOpcion("coneja-estructura", typeof base.estructura === "boolean" ? (base.estructura ? "si" : "no") : coneja ? null : "no");
   momentoPuesto = !coneja && fecha === hoy().iso;
   marcarOpcion("coneja-momento", coneja ? coneja.momento : momentoPuesto ? momentoDeAhora() : null);
+  // Quién ganó nunca viene marcado: un valor por defecto se colaría sin querer.
+  marcarOpcion("coneja-ganador", coneja?.ganador ?? null);
+  $("#coneja-falta-ganador").hidden = true;
   $("#coneja-lugar").value = base.lugar || "";
   $("#coneja-nota").value = coneja?.nota || "";
   // Los lugares más usados, a un toque.
@@ -371,6 +378,29 @@ function reparto(lista) {
     fila.append(pista, textos);
     caja.append(fila);
   }
+  // El marcador: Tania a la izquierda, JC a la derecha y los empates en medio.
+  const marcador = Object.fromEntries(Object.keys(GANADORES).map((k) => [k, cuenta((c) => c.ganador === k)]));
+  if (marcador.tania || marcador.jc || marcador.empate) {
+    const fila = el("div");
+    const pista = el("div", "coneja-pista");
+    pista.setAttribute("aria-hidden", "true");
+    for (const [valor, clase] of [[marcador.tania, "coneja-pista-a"], [marcador.empate, "coneja-pista-empate"], [marcador.jc, "coneja-pista-b"]]) {
+      if (!valor) continue;
+      const tramo = el("span", clase);
+      tramo.style.flexGrow = String(valor);
+      pista.append(tramo);
+    }
+    const textos = el("div", "coneja-reparto-textos");
+    const a = el("span", "", "Tania ");
+    a.append(el("strong", "", String(marcador.tania)));
+    const medio = el("span");
+    if (marcador.empate) medio.append(el("strong", "", String(marcador.empate)), marcador.empate === 1 ? " empate" : " empates");
+    const b = el("span");
+    b.append(el("strong", "", String(marcador.jc)), " JC");
+    textos.append(a, medio, b);
+    fila.append(pista, textos);
+    caja.append(fila);
+  }
   const sinDetalle = cuenta((c) => !(c.tipo in TIPOS));
   if (sinDetalle) {
     caja.append(el("div", "coneja-sin-detalle", sinDetalle === lista.length
@@ -554,6 +584,12 @@ function tarjetaCuriosos(h) {
   const [momento, veces] = porMomento.reduce((a, b) => (b[1] > a[1] ? b : a));
   if (veces) filas.push(["El momento favorito", `${MOMENTOS[momento].toLowerCase()} (${veces})`]);
 
+  const gano = (k) => delAñoVisto.filter((c) => c.ganador === k).length;
+  if (gano("tania") || gano("jc") || gano("empate")) {
+    filas.push(["Marcador", `Tania ${gano("tania")} · JC ${gano("jc")}`
+      + (gano("empate") ? ` · ${plural(gano("empate"), "empate", "empates")}` : "")]);
+  }
+
   if (a === h.a) {
     const ultima = conejas.reduce((max, c) => (c.fecha > max && c.fecha <= h.iso ? c.fecha : max), "");
     if (ultima) {
@@ -605,6 +641,7 @@ function pintarDia() {
       el("div", "fila-titulo", TIPOS[c.tipo] || "Sin detalle"),
       el("div", "fila-meta", [
         typeof c.estructura === "boolean" ? (c.estructura ? "Con estructura" : "Sin estructura") : "",
+        c.ganador === "empate" ? "empate" : c.ganador ? `ganó ${GANADORES[c.ganador]}` : "",
         MOMENTOS[c.momento], c.lugar, c.origen === "loop" ? "de Loop Habits" : "",
       ].filter(Boolean).join(" · ") || "Toca para completarla"),
     );
@@ -651,11 +688,18 @@ async function guardar(ev) {
     fecha,
     tipo: opcionMarcada("coneja-tipo") ?? null,
     estructura: { si: true, no: false }[opcionMarcada("coneja-estructura")] ?? null,
+    ganador: opcionMarcada("coneja-ganador") ?? null,
     momento: opcionMarcada("coneja-momento") ?? null,
     lugar: $("#coneja-lugar").value.trim().slice(0, 60) || null,
     nota: $("#coneja-nota").value.trim().slice(0, 140) || null,
   };
   const id = enEdicion;
+  if (!id && !datos.ganador) {
+    // El aviso va dentro del diálogo: el toast quedaría detrás del fondo oscuro.
+    $("#coneja-falta-ganador").hidden = false;
+    $("#coneja-falta-ganador").scrollIntoView({ block: "nearest" });
+    return;
+  }
   $("#dialogo-coneja").close();
   if (!id) {
     localStorage.setItem(CLAVE_ULTIMA, JSON.stringify({ tipo: datos.tipo, estructura: datos.estructura, lugar: datos.lugar }));

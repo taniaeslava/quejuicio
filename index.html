@@ -328,6 +328,13 @@
         <label><input type="radio" name="coneja-estructura" value="si" />Sí</label>
         <label><input type="radio" name="coneja-estructura" value="no" />No</label>
       </div>
+      <p class="dialogo-etiqueta" id="titulo-coneja-ganador">¿Quién ganó?</p>
+      <div class="selector-tema" role="radiogroup" aria-labelledby="titulo-coneja-ganador">
+        <label><input type="radio" name="coneja-ganador" value="tania" />Tania</label>
+        <label><input type="radio" name="coneja-ganador" value="jc" />JC</label>
+        <label><input type="radio" name="coneja-ganador" value="empate" />Empate</label>
+      </div>
+      <p id="coneja-falta-ganador" class="coneja-falta" role="alert" hidden>Falta escoger quién ganó.</p>
       <p class="dialogo-etiqueta" id="titulo-coneja-momento">¿A qué hora? <span class="opcional">opcional</span></p>
       <div class="selector-tema" role="radiogroup" aria-labelledby="titulo-coneja-momento">
         <label><input type="radio" name="coneja-momento" value="manana" />Mañana</label>
