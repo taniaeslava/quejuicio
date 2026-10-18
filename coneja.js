@@ -251,6 +251,10 @@ function pintar() {
     cont.append(tarjetaAño(h));
     const curiosos = tarjetaCuriosos(h);
     if (curiosos) cont.append(curiosos);
+    const copia = el("button", "fila-tenue", "Descargar copia de todas las conejas");
+    copia.type = "button";
+    copia.addEventListener("click", exportar);
+    cont.append(copia);
   }
   if (diaAbierto) pintarDia(); // el otro teléfono pudo cambiar algo
 }
@@ -713,6 +717,56 @@ async function guardar(ev) {
     console.error("coneja:", err);
     acciones.avisar("No se pudo guardar. ¿Ya está publicada la regla de «conejas» en Firestore?");
   }
+}
+
+/* ── Copia de seguridad ── */
+
+// Todas las conejas en un CSV (abre en Sheets o Excel), con los valores tal
+// como están guardados en Firestore para poder reimportarlas si algo se pierde.
+const COLUMNAS = ["id", "fecha", "tipo", "estructura", "ganador", "momento", "lugar", "nota", "origen", "creada"];
+
+function conejasEnCsv() {
+  const celda = (v) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n\r]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+  };
+  const filas = [...conejas]
+    .sort((x, y) => x.fecha.localeCompare(y.fecha) || (x.createdAt?.seconds ?? 0) - (y.createdAt?.seconds ?? 0))
+    .map((c) => COLUMNAS.map((k) => celda(k === "creada" ? c.createdAt?.toDate?.().toISOString() : c[k])).join(","));
+  // El BOM es para que Excel lea bien las tildes.
+  return "﻿" + [COLUMNAS.join(","), ...filas].join("\r\n") + "\r\n";
+}
+
+// En el teléfono abre «Compartir» (guardar en Drive, mandarla por correo…);
+// en el computador la descarga. Dentro de la app Android (WebView de
+// Capacitor) no hay ni lo uno ni lo otro: ahí se copia al portapapeles.
+async function exportar() {
+  const nombre = `conejas-${hoy().iso}.csv`;
+  const csv = conejasEnCsv();
+  const archivo = new File([csv], nombre, { type: "text/csv" });
+  if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [archivo] })) {
+    try {
+      await navigator.share({ files: [archivo], title: nombre });
+      return;
+    } catch (err) {
+      if (err.name === "AbortError") return; // la persona cerró «Compartir»
+    }
+  }
+  if (window.Capacitor?.isNativePlatform?.()) {
+    try {
+      await navigator.clipboard.writeText(csv);
+      acciones.avisar(`Copiadas ${plural(conejas.length, "coneja", "conejas")}: pégalas en un correo o una nota.`);
+    } catch {
+      acciones.avisar("No se pudo copiar. Ábrela en Chrome para descargar la copia.");
+    }
+    return;
+  }
+  const enlace = el("a");
+  enlace.href = URL.createObjectURL(archivo);
+  enlace.download = nombre;
+  enlace.click();
+  setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
+  acciones.avisar(`Copia descargada: ${plural(conejas.length, "coneja", "conejas")}.`);
 }
 
 async function eliminar() {

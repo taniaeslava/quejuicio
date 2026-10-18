@@ -261,7 +261,12 @@ que no se anota hoy no se puede recuperar después.
   `localStorage` (`queJuicio.conejaUltima`).
 - Debajo: «AAAA en 12 meses» (barritas del año anterior al lado si hay datos,
   filtro por tipo/estructura, tocar un mes lleva el calendario a ese mes) y
-  «Datos curiosos». Reusa las clases de Plata (`.plata-card`,
+  «Datos curiosos». Al final, «Descargar copia de todas las conejas»
+  (`exportar()` en coneja.js): un CSV de respaldo con los valores tal cual
+  están en Firestore. En el teléfono abre «Compartir», en el computador
+  descarga, y dentro del APK (el WebView no descarga ni comparte) lo copia
+  al portapapeles. Si agregas un campo a las conejas, súmalo a `COLUMNAS`.
+  Reusa las clases de Plata (`.plata-card`,
   `.plata-cabecera`, `.plata-graf`, `.plata-franja`…): si cambias esas,
   revisa también Coneja.
 
