@@ -17,8 +17,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Se muestran en Ajustes → Acerca de. Súbelos a mano en cada versión.
-const VERSION_APP = "2.4";
-const ULTIMA_ACTUALIZACION = "14 de octubre de 2026";
+const VERSION_APP = "2.5";
+const ULTIMA_ACTUALIZACION = "18 de octubre de 2026";
 
 const DIA_MS = 86_400_000;
 const HISTORIAL_MAX = 10;
@@ -453,7 +453,10 @@ function abrirDialogoTarea(tarea = null) {
   }
 
   const ultimaMs = aMilis(tarea?.lastDone) ?? Date.now();
-  $("#tarea-ultima").value = new Date(ultimaMs).toISOString().slice(0, 10);
+  // El día local (toISOString daría el de UTC, que pasada la medianoche es el de ayer).
+  const ultima = new Date(ultimaMs);
+  $("#tarea-ultima").value = [ultima.getFullYear(), ultima.getMonth() + 1, ultima.getDate()]
+    .map((n) => String(n).padStart(2, "0")).join("-");
 
   actualizarCamposFrecuencia();
   $("#dialogo-tarea").showModal();
@@ -464,7 +467,7 @@ function actualizarCamposFrecuencia() {
   const esUnica = $("#tarea-unidad").value === "0";
   $("#tarea-cantidad").hidden = esUnica;
   $("#label-ultima").hidden = esUnica;
-  $("#tarea-ultima").hidden = esUnica;
+  $("#campo-ultima").hidden = esUnica;
   $("#tarea-ultima").required = !esUnica;
 }
 
@@ -1937,6 +1940,28 @@ async function activarNotificaciones() {
 }
 
 /* ── Utilidades UI ── */
+
+// Muestra la fecha de un .campo-fecha como día/mes/año (17/10/2026) y no en
+// el orden del teléfono (10/17/2026 si está en inglés). Se engancha también al
+// `value`, así que basta con asignarlo (como hacen los diálogos) para que se actualice.
+function campoFecha(input) {
+  const texto = input.parentElement.querySelector(".campo-fecha-texto");
+  const pintar = () => {
+    const [a, m, d] = input.value.split("-");
+    texto.textContent = a && m && d ? `${d}/${m}/${a}` : "Escoge un día";
+  };
+  const { get, set } = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+  Object.defineProperty(input, "value", {
+    get() { return get.call(this); },
+    set(v) { set.call(this, v); pintar(); },
+  });
+  input.addEventListener("input", pintar);
+  input.addEventListener("change", pintar);
+  // En el computador el selector solo abre con el iconito; así abre al tocar donde sea.
+  input.addEventListener("click", () => { try { input.showPicker(); } catch {} });
+  pintar();
+}
+
 let toastTimer = null;
 function avisar(mensaje) {
   const toast = $("#toast");
@@ -1968,6 +1993,7 @@ function avisarDeshacer(mensaje, accion) {
 }
 
 /* ── Arranque y eventos ── */
+document.querySelectorAll(".campo-fecha input").forEach(campoFecha);
 $("#form-entrada").addEventListener("submit", (ev) => {
   ev.preventDefault();
   const codigo = $("#input-codigo").value.trim().toLowerCase().replaceAll(" ", "-");

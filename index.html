@@ -201,7 +201,10 @@
       </div>
 
       <label for="tarea-ultima" id="label-ultima">¿Cuándo se hizo por última vez?</label>
-      <input id="tarea-ultima" type="date" required />
+      <div class="campo-fecha" id="campo-ultima">
+        <span class="campo-fecha-texto" aria-hidden="true"></span>
+        <input id="tarea-ultima" type="date" required />
+      </div>
 
       <div class="dialogo-acciones">
         <button type="button" id="btn-eliminar" class="btn btn-peligro" hidden>Eliminar</button>
@@ -317,7 +320,10 @@
       <h2 id="titulo-dialogo-coneja">Nueva coneja</h2>
       <div class="tile-band tile-band-fina" aria-hidden="true"></div>
       <label for="coneja-fecha">¿Qué día?</label>
-      <input id="coneja-fecha" type="date" required />
+      <div class="campo-fecha">
+        <span class="campo-fecha-texto" aria-hidden="true"></span>
+        <input id="coneja-fecha" type="date" required />
+      </div>
       <p class="dialogo-etiqueta" id="titulo-coneja-tipo">Tipo</p>
       <div class="selector-tema selector-dos" role="radiogroup" aria-labelledby="titulo-coneja-tipo">
         <label><input type="radio" name="coneja-tipo" value="regular" />Regular</label>
