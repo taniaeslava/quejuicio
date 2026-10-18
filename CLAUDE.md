@@ -83,7 +83,8 @@ package.json                Solo @netlify/blobs para plata.mjs (NO es del fronte
 android-app/capacitor.config.json   Config de la app (carga el sitio de Netlify vía System WebView)
 android-app/assets/                 Ícono y splash para compilar
 android-app/www/                    Placeholder que Capacitor exige (la app carga el sitio en vivo)
-android-app/package.json            Dependencias de Capacitor (solo para el build en la nube)
+android-app/package.json            Dependencias de Capacitor (solo para el build en la nube); el plugin
+                                    Filesystem es para que la copia de las conejas se guarde como archivo
 
 ## Cómo está organizado `app.js`
 
@@ -260,13 +261,19 @@ que no se anota hoy no se puede recuperar después.
   abre). El último tipo/estructura anotado se recuerda por teléfono en
   `localStorage` (`queJuicio.conejaUltima`).
 - Debajo: «AAAA en 12 meses» (barritas del año anterior al lado si hay datos,
-  filtro por tipo/estructura, tocar un mes lleva el calendario a ese mes) y
-  «Datos curiosos». Al final, «Descargar copia de todas las conejas»
-  (`exportar()` en coneja.js): un CSV de respaldo con los valores tal cual
-  están en Firestore. En el teléfono abre «Compartir», en el computador
-  descarga, y dentro del APK (el WebView no descarga ni comparte) lo copia
-  al portapapeles. Si agregas un campo a las conejas, súmalo a `COLUMNAS`.
-  Reusa las clases de Plata (`.plata-card`,
+  filtro por tipo/estructura/ganador en `FILTROS`: las que no tienen el dato
+  del filtro quedan aparte con un aviso y no cuentan para comparar ni
+  promediar; tocar un mes lleva el calendario a ese mes) y
+  «Datos curiosos». Al final, **Copia de seguridad** como en Loop Habits:
+  «Exportar CSV» (`exportar()`) guarda todas las conejas con los valores
+  tal cual están en Firestore — en el APK con el plugin
+  `@capacitor/filesystem` en Documentos/QueJuicio/ (el WebView no
+  descarga), en el navegador como descarga — y «Restaurar desde CSV»
+  (`restaurarDesde()`) las vuelve a cargar por id: agrega las que falten,
+  deja como en el archivo las distintas y **nunca borra**. Valida cada fila
+  como `firestore.rules` y escribe en lotes (`restaurar` en app.js). Si
+  agregas un campo a las conejas, súmalo a `COLUMNAS`, `CAMPOS` y
+  `conejaDeFila()`. Reusa las clases de Plata (`.plata-card`,
   `.plata-cabecera`, `.plata-graf`, `.plata-franja`…): si cambias esas,
   revisa también Coneja.
 

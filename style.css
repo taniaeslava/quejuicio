@@ -1128,6 +1128,12 @@ button.plata-barra-fila { cursor: pointer; }
   font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
 }
 .coneja-chip[aria-pressed="true"] { background: var(--cobalto); color: var(--crema-sobre-color); font-weight: 700; }
+.coneja-copia { margin: 18px 4px 8px; text-align: center; }
+.coneja-copia-titulo {
+  font-family: var(--fuente-cuerpo); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--label);
+}
+.coneja-copia-botones { display: flex; justify-content: center; gap: 8px; }
+.coneja-copia-botones .fila-tenue { width: auto; margin-top: 2px; color: var(--cobalto); }
 .coneja-graf .plata-graf-area { left: 24px; }
 .coneja-letras { margin-left: 24px; }
 .coneja-barra {

@@ -3,7 +3,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, doc, onSnapshot,
-  addDoc, updateDoc, deleteDoc, setDoc,
+  addDoc, updateDoc, deleteDoc, setDoc, writeBatch,
   serverTimestamp, Timestamp, deleteField, arrayUnion,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
@@ -17,7 +17,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Se muestran en Ajustes → Acerca de. Súbelos a mano en cada versión.
-const VERSION_APP = "2.5";
+const VERSION_APP = "2.6";
 const ULTIMA_ACTUALIZACION = "18 de octubre de 2026";
 
 const DIA_MS = 86_400_000;
@@ -2072,6 +2072,21 @@ configurarConeja({
     ? updateDoc(doc(coleccionConejas(), id), datos)
     : addDoc(coleccionConejas(), { ...datos, createdAt: serverTimestamp() })),
   borrar: (id) => deleteDoc(doc(coleccionConejas(), id)),
+  // Desde una copia CSV: cada una reemplaza la del mismo id (o se crea), en
+  // lotes de 400 (Firestore acepta hasta 500 escrituras por lote).
+  restaurar: async (lista) => {
+    for (let i = 0; i < lista.length; i += 400) {
+      const lote = writeBatch(db);
+      for (const { id, creada, origen, ...datos } of lista.slice(i, i + 400)) {
+        lote.set(doc(coleccionConejas(), id), {
+          ...datos,
+          ...(origen ? { origen } : {}),
+          ...(creada ? { createdAt: Timestamp.fromDate(new Date(creada)) } : {}),
+        });
+      }
+      await lote.commit();
+    }
+  },
   avisar,
 });
 $("#btn-notificaciones").addEventListener("click", activarNotificaciones);

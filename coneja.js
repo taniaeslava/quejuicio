@@ -35,19 +35,26 @@ const NOMBRE_DIA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viern
 const TIPOS = { regular: "Regular", linguismo: "Lingüismo" };
 const MOMENTOS = { manana: "Mañana", tarde: "Tarde", noche: "Noche" };
 const GANADORES = { tania: "Tania", jc: "JC", empate: "Empate" };
+// Los filtros de «el año en 12 meses»: [valor, nombre en el chip, en la franja
+// de lectura, qué cuenta, a cuáles les falta el dato (esas quedan aparte)].
+const sinTipo = (c) => !(c.tipo in TIPOS);
+const sinGanador = (c) => !(c.ganador in GANADORES);
 const FILTROS = [
-  ["todas", "Todas", () => true],
-  ["regular", "Regular", (c) => c.tipo === "regular"],
-  ["linguismo", "Lingüismo", (c) => c.tipo === "linguismo"],
-  ["con", "Con estructura", (c) => c.estructura === true],
-  ["sin", "Sin estructura", (c) => c.estructura === false],
+  ["todas", "Todas", "", () => true, () => false],
+  ["regular", "Regular", "regular", (c) => c.tipo === "regular", sinTipo],
+  ["linguismo", "Lingüismo", "lingüismo", (c) => c.tipo === "linguismo", sinTipo],
+  ["con", "Con estructura", "con estructura", (c) => c.estructura === true, sinTipo],
+  ["sin", "Sin estructura", "sin estructura", (c) => c.estructura === false, sinTipo],
+  ["tania", "Ganó Tania", "ganó Tania", (c) => c.ganador === "tania", sinGanador],
+  ["jc", "Ganó JC", "ganó JC", (c) => c.ganador === "jc", sinGanador],
+  ["empate", "Empate", "empates", (c) => c.ganador === "empate", sinGanador],
 ];
 const CLAVE_ULTIMA = "queJuicio.conejaUltima"; // tipo, estructura y lugar de la última anotada (por teléfono)
 
 let conejas = [];
 let llegaron = false;    // ¿ya llegó el primer snapshot?
 let errorLectura = false;
-let acciones = null;     // { guardar(id, datos), borrar(id), avisar(texto) }: las pone app.js
+let acciones = null;     // { guardar(id, datos), borrar(id), restaurar(lista), avisar(texto) }: las pone app.js
 let visto = null;        // { a, m }: el mes del calendario (m de 1 a 12)
 let filtro = "todas";    // qué conejas cuenta «el año en 12 meses»
 let diaAbierto = null;   // la fecha del diálogo de un día
@@ -67,6 +74,11 @@ export function configurarConeja(nuevas) {
     nuevaConeja(fecha);
   });
   $("#btn-cerrar-coneja-dia").addEventListener("click", () => $("#dialogo-coneja-dia").close());
+  $("#coneja-archivo").addEventListener("change", (ev) => {
+    const archivo = ev.target.files[0];
+    ev.target.value = ""; // para poder escoger el mismo archivo otra vez
+    if (archivo) restaurarDesde(archivo);
+  });
   $("#dialogo-coneja-dia").addEventListener("close", () => (diaAbierto = null));
   // Si la app puso el momento por ser hoy y cambian el día, ya no aplica.
   $("#coneja-fecha").addEventListener("change", () => {
@@ -251,11 +263,9 @@ function pintar() {
     cont.append(tarjetaAño(h));
     const curiosos = tarjetaCuriosos(h);
     if (curiosos) cont.append(curiosos);
-    const copia = el("button", "fila-tenue", "Descargar copia de todas las conejas");
-    copia.type = "button";
-    copia.addEventListener("click", exportar);
-    cont.append(copia);
   }
+  // Restaurar también va con la lista vacía: es justo cuando más se necesita.
+  if (llegaron && !errorLectura) cont.append(seccionCopia());
   if (diaAbierto) pintarDia(); // el otro teléfono pudo cambiar algo
 }
 
@@ -426,12 +436,14 @@ const alto = (valor, escala) => `${(valor / escala) * 100}%`;
 // mes lleva al lado su barrita de ese año. Tocar una columna lleva a ese mes.
 function tarjetaAño(h) {
   const { a, m } = visto;
-  const [, nombreFiltro, cumple] = FILTROS.find(([valor]) => valor === filtro);
+  const [, , enFranja, cumple, sinDato] = FILTROS.find(([valor]) => valor === filtro);
   const filtradas = conejas.filter(cumple);
   const porMes = (año) => Array.from({ length: 12 }, (_, i) => delMes(filtradas, año, i + 1).length);
   const este = porMes(a);
   const antes = porMes(a - 1);
-  const hayAntes = delAño(conejas, a - 1).length > 0;
+  // Sin el dato del filtro el año anterior (p. ej. ganador antes de oct 2026),
+  // sus barritas saldrían en cero sin serlo: mejor no compararlo.
+  const hayAntes = delAño(conejas, a - 1).some((c) => !sinDato(c));
   const ultimoMes = a === h.a ? h.m : 12;
 
   const card = el("section", "plata-card");
@@ -445,9 +457,10 @@ function tarjetaAño(h) {
   nav.append(anterior, siguiente);
   titulo.append(el("h3", "plata-card-titulo", `${a} en 12 meses`), nav);
   card.append(titulo, selectorDeFiltro());
-  const fuera = delAño(conejas, a).filter((c) => !cumple(c) && !(c.tipo in TIPOS)).length;
-  if (filtro !== "todas" && fuera) {
-    card.append(el("p", "plata-hallazgo", `${plural(fuera, "coneja", "conejas")} de ${a} sin detalle no entran en este filtro.`));
+  const fuera = delAño(conejas, a).filter(sinDato).length;
+  if (fuera) {
+    const falta = sinDato === sinGanador ? "sin ganador anotado" : "sin detalle";
+    card.append(el("p", "plata-hallazgo", `${plural(fuera, "coneja", "conejas")} de ${a} ${falta} no entran en este filtro.`));
   }
   if (hayAntes) {
     const ley = el("div", "plata-leyenda-linea");
@@ -462,7 +475,7 @@ function tarjetaAño(h) {
   const lectura = el("div", "plata-franja");
   const arriba = el("div", "plata-franja-fila");
   arriba.append(
-    el("span", "plata-franja-titulo", mayus(NOMBRE_MES[m - 1]) + (filtro === "todas" ? "" : ` · ${nombreFiltro.toLowerCase()}`)),
+    el("span", "plata-franja-titulo", mayus(NOMBRE_MES[m - 1]) + (enFranja ? ` · ${enFranja}` : "")),
     el("span", "plata-franja-monto", plural(este[m - 1], "coneja", "conejas")),
   );
   lectura.append(arriba);
@@ -510,7 +523,8 @@ function tarjetaAño(h) {
 
   // Totales: el año, el anterior hasta la misma fecha (o entero) y el promedio.
   const total = suma(este);
-  const primera = conejas.reduce((min, c) => (c.fecha < min ? c.fecha : min), "9999");
+  // El promedio cuenta desde la primera con el dato del filtro (el ganador se anota desde oct 2026).
+  const primera = conejas.filter((c) => !sinDato(c)).reduce((min, c) => (c.fecha < min ? c.fecha : min), "9999");
   const desde = partes(primera).a === a ? partes(primera).m : 1;
   const meses = Math.max(1, ultimoMes - desde + 1);
   const cifras = [[String(total), `en ${a}`]];
@@ -721,8 +735,10 @@ async function guardar(ev) {
 
 /* ── Copia de seguridad ── */
 
-// Todas las conejas en un CSV (abre en Sheets o Excel), con los valores tal
-// como están guardados en Firestore para poder reimportarlas si algo se pierde.
+// Como en Loop Habits: exportar deja un CSV con todas las conejas (abre en
+// Sheets o Excel) con los valores tal como están guardados en Firestore, y
+// restaurar lo vuelve a cargar. Restaurar agrega las que falten y deja como
+// en el archivo las que estén distintas (por id); nunca borra ninguna.
 const COLUMNAS = ["id", "fecha", "tipo", "estructura", "ganador", "momento", "lugar", "nota", "origen", "creada"];
 
 function conejasEnCsv() {
@@ -737,36 +753,150 @@ function conejasEnCsv() {
   return "﻿" + [COLUMNAS.join(","), ...filas].join("\r\n") + "\r\n";
 }
 
-// En el teléfono abre «Compartir» (guardar en Drive, mandarla por correo…);
-// en el computador la descarga. Dentro de la app Android (WebView de
-// Capacitor) no hay ni lo uno ni lo otro: ahí se copia al portapapeles.
+function seccionCopia() {
+  const caja = el("section", "coneja-copia");
+  caja.append(el("h3", "coneja-copia-titulo", "Copia de seguridad"));
+  const botones = el("div", "coneja-copia-botones");
+  const boton = (texto, accion) => {
+    const b = el("button", "fila-tenue", texto);
+    b.type = "button";
+    b.addEventListener("click", accion);
+    return b;
+  };
+  if (conejas.length) botones.append(boton("Exportar CSV", exportar));
+  botones.append(boton("Restaurar desde CSV", () => $("#coneja-archivo").click()));
+  caja.append(botones);
+  return caja;
+}
+
+// La app Android (WebView de Capacitor) no descarga archivos: ahí lo guarda
+// el plugin Filesystem en Documentos/QueJuicio (el APK lo trae desde oct 2026).
+// En el navegador es una descarga normal.
 async function exportar() {
   const nombre = `conejas-${hoy().iso}.csv`;
   const csv = conejasEnCsv();
-  const archivo = new File([csv], nombre, { type: "text/csv" });
-  if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [archivo] })) {
-    try {
-      await navigator.share({ files: [archivo], title: nombre });
+  const cuantas = plural(conejas.length, "coneja", "conejas");
+  const cap = window.Capacitor;
+  if (cap?.isNativePlatform?.()) {
+    const fs = cap.isPluginAvailable?.("Filesystem") && (cap.Plugins?.Filesystem ?? cap.registerPlugin?.("Filesystem"));
+    if (!fs) {
+      acciones.avisar("Para exportar hay que instalar la app nueva (QueJuicio.apk en GitHub).");
       return;
-    } catch (err) {
-      if (err.name === "AbortError") return; // la persona cerró «Compartir»
     }
-  }
-  if (window.Capacitor?.isNativePlatform?.()) {
+    const escribir = () => fs.writeFile({
+      path: `QueJuicio/${nombre}`, data: csv, directory: "DOCUMENTS", encoding: "utf8", recursive: true,
+    });
     try {
-      await navigator.clipboard.writeText(csv);
-      acciones.avisar(`Copiadas ${plural(conejas.length, "coneja", "conejas")}: pégalas en un correo o una nota.`);
-    } catch {
-      acciones.avisar("No se pudo copiar. Ábrela en Chrome para descargar la copia.");
+      // En Android 10 o anterior hace falta el permiso de almacenamiento.
+      await escribir().catch(async () => { await fs.requestPermissions(); return escribir(); });
+      acciones.avisar(`Copia guardada en Documentos/QueJuicio/${nombre} (${cuantas}).`);
+    } catch (err) {
+      console.error("coneja:", err);
+      acciones.avisar("No se pudo guardar la copia en el teléfono.");
     }
     return;
   }
   const enlace = el("a");
-  enlace.href = URL.createObjectURL(archivo);
+  enlace.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
   enlace.download = nombre;
   enlace.click();
   setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
-  acciones.avisar(`Copia descargada: ${plural(conejas.length, "coneja", "conejas")}.`);
+  acciones.avisar(`Copia descargada (${cuantas}).`);
+}
+
+// Lee un CSV (comas o punto y coma, con comillas a la manera de Excel).
+function leerCsv(texto) {
+  texto = texto.replace(/^﻿/, "");
+  const primera = texto.slice(0, texto.search(/\r?\n|$/));
+  const sep = primera.includes(";") && !primera.includes(",") ? ";" : ",";
+  const filas = [];
+  let fila = [], celda = "", comillas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const ch = texto[i];
+    if (comillas) {
+      if (ch !== '"') celda += ch;
+      else if (texto[i + 1] === '"') { celda += '"'; i++; }
+      else comillas = false;
+    } else if (ch === '"') comillas = true;
+    else if (ch === sep) { fila.push(celda); celda = ""; }
+    else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && texto[i + 1] === "\n") i++;
+      fila.push(celda); filas.push(fila); fila = []; celda = "";
+    } else celda += ch;
+  }
+  if (celda || fila.length) { fila.push(celda); filas.push(fila); }
+  return filas.filter((f) => f.some((c) => c.trim()));
+}
+
+// Una fila del CSV como coneja, o null si algo no cuadra con lo que aceptan
+// las reglas de Firestore. Acepta la fecha como 17/10/2026 por si Excel la cambió.
+function conejaDeFila(f) {
+  const v = (k) => (f[k] ?? "").trim();
+  const id = v("id");
+  if (!id || id.length > 150 || id.includes("/") || /^\.\.?$|^__.*__$/.test(id)) return null;
+  let fecha = v("fecha");
+  const dma = fecha.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dma) fecha = isoDe(dma[3], dma[2], dma[1]);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return null;
+  const de = (k, validos) => (v(k) === "" ? null : Object.hasOwn(validos, v(k)) ? v(k) : undefined);
+  const estructura = { "": null, true: true, false: false }[v("estructura").toLowerCase()];
+  const c = {
+    id, fecha, estructura,
+    tipo: de("tipo", TIPOS),
+    ganador: de("ganador", GANADORES),
+    momento: de("momento", MOMENTOS),
+    origen: de("origen", { loop: 1 }),
+    lugar: v("lugar").slice(0, 60) || null,
+    nota: v("nota").slice(0, 140) || null,
+    creada: Number.isNaN(Date.parse(v("creada"))) ? null : v("creada"),
+  };
+  return Object.values(c).includes(undefined) ? null : c;
+}
+
+const CAMPOS = ["fecha", "tipo", "estructura", "ganador", "momento", "lugar", "nota", "origen"];
+const iguales = (x, y) => CAMPOS.every((k) => (x[k] ?? null) === (y[k] ?? null));
+
+async function restaurarDesde(archivo) {
+  const [cabecera, ...filas] = leerCsv(await archivo.text());
+  const columnas = (cabecera || []).map((c) => c.trim().toLowerCase());
+  if (!columnas.includes("id") || !columnas.includes("fecha")) {
+    acciones.avisar("Ese archivo no es una copia de las conejas.");
+    return;
+  }
+  const delArchivo = new Map(); // por id: si se repite, gana la última fila
+  let malas = 0;
+  for (const fila of filas) {
+    const c = conejaDeFila(Object.fromEntries(columnas.map((k, i) => [k, fila[i]])));
+    if (c) delArchivo.set(c.id, c);
+    else malas++;
+  }
+  const porId = new Map(conejas.map((c) => [c.id, c]));
+  const nuevas = [...delArchivo.values()].filter((c) => !porId.has(c.id));
+  const distintas = [...delArchivo.values()].filter((c) => porId.has(c.id) && !iguales(porId.get(c.id), c));
+  const saltadas = malas ? ` ${plural(malas, "fila no se entiende", "filas no se entienden")} y se salta${malas === 1 ? "" : "n"}.` : "";
+  if (!delArchivo.size) {
+    acciones.avisar("El archivo no trae ninguna coneja que se pueda leer.");
+    return;
+  }
+  if (!nuevas.length && !distintas.length) {
+    acciones.avisar(`Nada que restaurar: ${delArchivo.size === 1 ? "la coneja del archivo ya está" : `las ${delArchivo.size} conejas del archivo ya están`}.${saltadas}`);
+    return;
+  }
+  const resumen = [
+    `El archivo trae ${plural(delArchivo.size, "coneja", "conejas")}.`,
+    nuevas.length ? `• ${plural(nuevas.length, "no está y se agrega", "no están y se agregan")}.` : "",
+    distintas.length ? `• ${plural(distintas.length, "está distinta y queda", "están distintas y quedan")} como en el archivo.` : "",
+    saltadas.trim(),
+    "No se borra ninguna. ¿Restaurar?",
+  ].filter(Boolean).join("\n");
+  if (!confirm(resumen)) return;
+  try {
+    await acciones.restaurar([...nuevas, ...distintas]);
+    acciones.avisar(`Listo: ${plural(nuevas.length + distintas.length, "coneja restaurada", "conejas restauradas")}.`);
+  } catch (err) {
+    console.error("coneja:", err);
+    acciones.avisar("No se pudo restaurar. Revisa la conexión.");
+  }
 }
 
 async function eliminar() {
