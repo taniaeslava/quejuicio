@@ -12,7 +12,14 @@ name: Avisar tareas vencidas
 on:
   # schedule:
   #   - cron: "0 6 * * *"   # 06:00 UTC (08:00 Berlín verano / 07:00 invierno)
-  workflow_dispatch: {} # solo se puede lanzar a mano desde la pestaña Actions
+  # A mano: Actions → Avisar tareas vencidas → Run workflow. Por defecto es
+  # solo una prueba (revisa la clave, Firestore y FCM sin mandar nada).
+  workflow_dispatch:
+    inputs:
+      solo_probar:
+        description: "Solo probar (no manda avisos ni marca nada)"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -22,12 +29,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Descargar el repositorio
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Preparar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Instalar dependencias
         working-directory: notify
@@ -38,3 +45,5 @@ jobs:
         run: node index.js
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # En las corridas del schedule no hay inputs: queda vacío y manda de verdad.
+          SOLO_PROBAR: ${{ inputs.solo_probar }}

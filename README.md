@@ -164,10 +164,13 @@ Abran la URL en ambos teléfonos y escriban **el mismo código de hogar**.
 3. En GitHub: **Settings → Secrets and variables → Actions → New repository
    secret**. Nombre: `FIREBASE_SERVICE_ACCOUNT`. Valor: el contenido
    completo del JSON (ábrelo con un editor de texto y copia todo).
-4. El workflow [notify.yml](.github/workflows/notify.yml) corre todos los
-   días a las **06:00 UTC** (08:00 en Berlín en verano, 07:00 en invierno).
-   Para probarlo ya mismo: pestaña **Actions → Avisar tareas vencidas →
-   Run workflow**.
+4. El workflow [notify.yml](.github/workflows/notify.yml) está **en pausa**
+   desde julio de 2026 (el push web no llega a la app Android nativa): solo
+   corre a mano. Para probarlo: pestaña **Actions → Avisar tareas vencidas →
+   Run workflow**. Viene marcado «Solo probar»: revisa la clave, Firestore y
+   FCM sin mandar nada; desmárcalo para mandar los avisos de verdad. Para
+   volver al aviso diario (06:00 UTC = 08:00 en Berlín en verano, 07:00 en
+   invierno), descomenta el bloque `schedule` del workflow.
 
 El script recorre todas las tareas, y por cada hogar con tareas vencidas
 manda un push a todos los teléfonos registrados. Marca `lastNotified` en la
@@ -279,9 +282,11 @@ iguales: `taskStatus()` en [app.js](app.js) (cliente) y `estaVencida()` en
 - **No llega el push al iPhone** → ¿la app está añadida a la pantalla de
   inicio y abierta desde ahí al activar las notificaciones? ¿iOS 16.4 o
   superior?
-- **El workflow falla con error de credenciales** → el secreto
-  `FIREBASE_SERVICE_ACCOUNT` debe contener el JSON completo, incluidas las
-  llaves `{ }`.
+- **El workflow falla** → abre la corrida en Actions: arriba, en
+  «Annotations», el script dice qué pasó y qué hacer (falta el secreto, el
+  JSON está roto, la clave es de otro proyecto o Google la rechazó). Casi
+  siempre se arregla generando una clave nueva y pegando el JSON completo,
+  con sus llaves `{ }`, en el secreto `FIREBASE_SERVICE_ACCOUNT`.
 - **Llegan avisos repetidos** → verifica que el workflow corre una sola vez
   al día y que el script pudo escribir `lastNotified` (mira el log en
   Actions).
