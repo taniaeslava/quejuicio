@@ -284,8 +284,11 @@ detalle de kit, lista de plantillas y detalle de plantilla) que `pintarKits()`
 muestra y esconde. No es un molde a copiar tal cual.
 
 Ya hay cinco pestañas: **Tareas, Compras, Kits, Plata y Coneja** (Plata no
-usa Firestore: es un módulo aparte, ver «Plata» arriba). Con cinco la barra
-de abajo está llena: una sexta sección pide replantear la navegación. Compras (accordions)
+usa Firestore: es un módulo aparte, ver «Plata» arriba). La barra de abajo
+muestra cuatro a la vez (cada pestaña mide el 25%) y Coneja, la quinta, está
+escondida a la derecha: sale solo al deslizar la barra (scroll con snap) y
+`mostrarVista` la vuelve a esconder al ir a otra pestaña. Una sexta cabría
+igual al final, pero ojo: mientras más escondidas, menos se encuentran. Compras (accordions)
 y Kits (lista + detalle) son los mejores moldes a copiar. Pasos:
 
 1. **HTML** ([index.html](index.html)):

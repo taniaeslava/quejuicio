@@ -17,8 +17,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Se muestran en Ajustes → Acerca de. Súbelos a mano en cada versión.
-const VERSION_APP = "2.6";
-const ULTIMA_ACTUALIZACION = "18 de octubre de 2026";
+const VERSION_APP = "2.7";
+const ULTIMA_ACTUALIZACION = "22 de octubre de 2026";
 
 const DIA_MS = 86_400_000;
 const HISTORIAL_MAX = 10;
@@ -547,6 +547,12 @@ function mostrarVista(cual) {
     $(`#vista-${v}`).hidden = v !== cual;
     $(`#tab-${v}`).classList.toggle("activa", v === cual);
   }
+  // Coneja vive escondida a la derecha de la barra: queda a la vista mientras
+  // está abierta y se vuelve a esconder al ir a cualquiera de las otras cuatro.
+  $("#barra-pestanas").scrollTo({
+    left: cual === "coneja" ? $("#barra-pestanas").scrollWidth : 0,
+    behavior: sinMovimiento() ? "auto" : "smooth",
+  });
   // El FAB "+" es de Tareas (nueva tarea) y de Coneja (anotar una coneja).
   $("#btn-nueva").hidden = cual !== "tareas" && cual !== "coneja";
   $("#btn-nueva").setAttribute("aria-label", cual === "coneja" ? "Anotar una coneja" : "Nueva tarea");

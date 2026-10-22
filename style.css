@@ -477,9 +477,18 @@ main { padding: 0 20px calc(6.5rem + env(safe-area-inset-bottom)); max-width: 34
   border-top: 1px solid var(--nav-hairline);
   display: flex;
   z-index: 40;
+  /* Caben cuatro pestañas a la vista; Coneja (la quinta) sale solo al
+     deslizar la barra hacia la izquierda. El snap la deja en una de las dos
+     posiciones, nunca a medias. */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
 }
+.barra-pestanas::-webkit-scrollbar { display: none; }
 .tab {
-  flex: 1;
+  flex: 0 0 25%;
+  scroll-snap-align: start;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   justify-content: center;
   background: none; border: none;
