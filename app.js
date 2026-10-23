@@ -17,8 +17,8 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Se muestran en Ajustes → Acerca de. Súbelos a mano en cada versión.
-const VERSION_APP = "2.7";
-const ULTIMA_ACTUALIZACION = "22 de octubre de 2026";
+const VERSION_APP = "2.8";
+const ULTIMA_ACTUALIZACION = "23 de octubre de 2026";
 
 const DIA_MS = 86_400_000;
 const HISTORIAL_MAX = 10;

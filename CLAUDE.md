@@ -225,6 +225,13 @@ Firestore, al repo (es público), a `localStorage` ni a la caché offline**.
   desde el Fondo Colombia). Tocar una categoría abre su **detalle** (12
   meses + movimientos del mes). El diseño está fuera del repo, en
   `Documents\presupuesto\plata-diseno\`.
+- **El ojo (como en N26):** cada vez que se abre la pestaña los montos salen
+  borrosos, para poder mostrarle la app a alguien sin mostrar la plata; el
+  botón del ojo (junto al candado) los muestra. `marcarCifras()` envuelve al
+  final de `pintarPlata()` todo lo que tenga forma de monto («… €», «… COP»)
+  en `<span class="cifra">`, así que cualquier pantalla nueva queda cubierta
+  si usa `eur()`/`cop()`. Porcentajes, barras y tasas de cambio quedan a la
+  vista a propósito.
 - Las gráficas son HTML/CSS/SVG a mano (sin librería). Al tacto no hay
   globos: arriba de cada gráfica hay una «franja de lectura» con lo tocado.
   Rejilla, rayas y columnas se miden sobre la misma caja, o no cuadran.

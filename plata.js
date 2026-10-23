@@ -59,6 +59,7 @@ let temporizador = null;
 let quien = localStorage.getItem("queJuicio.plataQuien"); // "tania" | "jc": por teléfono, no es secreto
 let pinError = "";
 let enviandoPin = false;
+let cifrasVisibles = false; // el ojo: las cifras salen borrosas hasta abrirlo
 
 const sesionViva = () => Boolean(sesion) && Date.now() < venceSesion;
 
@@ -67,6 +68,8 @@ const sesionViva = () => Boolean(sesion) && Date.now() < venceSesion;
 // La llama mostrarVista("plata") en app.js cada vez que se abre la pestaña.
 export function abrirPlata(codigo) {
   codigoHogar = codigo;
+  // Cada vez que se entra, borrosa: así se puede mostrar la app sin mostrar la plata.
+  cifrasVisibles = false;
   if (!sesionViva()) cerrarSesion(sesion ? "Pasaron 15 minutos: vuelve a poner el PIN." : "");
   else if (!datos || Date.now() - leidoEn > RELEER_MS) cargarPlata();
   else pintarPlata();
@@ -242,6 +245,8 @@ const ICONOS = {
   desplegar: '<path d="m6 9 6 6 6-6"/>',
   calendario: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   candado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  ojo: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+  ojoCerrado: '<path d="M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4"/><path d="M6.6 6.6C3.9 8.4 2 12 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="m3 3 18 18"/>',
 };
 function icono(nombre) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -292,6 +297,7 @@ function pintarPlata() {
   const cont = document.querySelector("#vista-plata");
   if (!cont) return;
   cont.replaceChildren();
+  cont.classList.toggle("cifras-ocultas", !cifrasVisibles);
   if (!sesionViva()) {
     cont.append(pantallaPin());
     // El teclado numérico sale solo, pero solo si la pestaña está a la vista.
@@ -302,14 +308,47 @@ function pintarPlata() {
     cont.append(errorPlata ? tarjetaError() : esqueleto());
     return;
   }
-  if (detalle) {
-    cont.append(pantallaDetalle());
-    return;
+  if (detalle) cont.append(pantallaDetalle());
+  else {
+    cont.append(selectorDeSeccion());
+    if (seccion === "año") cont.append(pantallaAño());
+    else if (seccion === "viajes") cont.append(pantallaViajes());
+    else cont.append(pantallaMes());
   }
-  cont.append(selectorDeSeccion());
-  if (seccion === "año") cont.append(pantallaAño());
-  else if (seccion === "viajes") cont.append(pantallaViajes());
-  else cont.append(pantallaMes());
+  marcarCifras(cont);
+}
+
+// Envuelve cada monto («1.234,50 €», «2.000.000 COP») en un <span class="cifra">
+// para que el ojo los pueda difuminar. Se hace al final, sobre lo ya pintado,
+// en vez de en cada eur(): así ninguna pantalla nueva se queda sin ocultar.
+// Las tasas («4.300 COP por €») y los porcentajes no son plata y quedan a la vista.
+const MONTO = /−?\d{1,3}(?:\.\d{3})*(?:,\d{2}\s€|\sCOP(?!\spor))/g; // \s: eur() y cop() usan espacio duro
+function marcarCifras(cont) {
+  const recorrido = document.createTreeWalker(cont, NodeFilter.SHOW_TEXT);
+  const textos = [];
+  while (recorrido.nextNode()) if (recorrido.currentNode.data.search(MONTO) >= 0) textos.push(recorrido.currentNode);
+  for (const t of textos) {
+    const partes = [];
+    let desde = 0;
+    for (const m of t.data.matchAll(MONTO)) {
+      partes.push(t.data.slice(desde, m.index), el("span", "cifra", m[0]));
+      desde = m.index + m[0].length;
+    }
+    partes.push(t.data.slice(desde));
+    t.replaceWith(...partes.filter((x) => x !== ""));
+  }
+}
+
+// Abre o cierra el ojo sin volver a pintar (no se mueve nada en la pantalla).
+function alternarCifras() {
+  cifrasVisibles = !cifrasVisibles;
+  document.querySelector("#vista-plata")?.classList.toggle("cifras-ocultas", !cifrasVisibles);
+  for (const b of document.querySelectorAll(".plata-ojo")) ponerOjo(b);
+}
+function ponerOjo(boton) {
+  boton.replaceChildren(icono(cifrasVisibles ? "ojo" : "ojoCerrado"));
+  boton.setAttribute("aria-label", cifrasVisibles ? "Ocultar las cifras" : "Mostrar las cifras");
+  boton.setAttribute("aria-pressed", String(cifrasVisibles));
 }
 
 // Mes · Año · Viajes (como el selector de tema de Ajustes).
@@ -363,15 +402,19 @@ function botonRedondo(nombreIcono, etiqueta, accion) {
   return b;
 }
 
-// Etiqueta, título y botones a la derecha; el último siempre es el candado,
-// que cierra Plata ya (por si le prestan el teléfono a alguien).
+// Etiqueta, título y botones a la derecha; los dos últimos son siempre el ojo
+// (muestra u oculta las cifras) y el candado, que cierra Plata ya (por si le
+// prestan el teléfono a alguien).
 function cabecera(etiqueta, titulo, botones = [], chip = "") {
   const frag = document.createDocumentFragment();
   const cab = el("div", "plata-cabecera");
   const titulos = el("div", "plata-titulos");
   titulos.append(el("span", "plata-etiqueta", etiqueta), el("h2", "plata-mes", titulo));
   const nav = el("div", "plata-nav");
-  nav.append(...botones, botonRedondo("candado", "Cerrar Plata", () => cerrarSesion()));
+  const ojo = botonRedondo("ojoCerrado", "", alternarCifras);
+  ojo.classList.add("plata-ojo");
+  ponerOjo(ojo);
+  nav.append(...botones, ojo, botonRedondo("candado", "Cerrar Plata", () => cerrarSesion()));
   cab.append(titulos, nav);
   frag.append(cab);
   if (chip) {

@@ -703,7 +703,7 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
 .item-grip .ico, .tienda-grip .ico { font-size: 18px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .anillo:not(.unica) { transition: none; }
+  .anillo:not(.unica), .cifra { transition: none; }
   .fila.saliendo, .estrella.pop { animation: none; }
 }
 
@@ -748,6 +748,10 @@ code { font-size: 0.95em; background: var(--navy-tint); border-radius: 6px; padd
 }
 .plata-nav button:active { background: var(--navy-tint); }
 .plata-nav button:disabled { opacity: 0.35; cursor: default; }
+/* El ojo: con él cerrado los montos se ven borrosos (como en N26) para poder
+   mostrar la app sin mostrar la plata. Los marca marcarCifras() en plata.js. */
+.cifra { display: inline-block; transition: filter 0.2s; }
+.cifras-ocultas .cifra { filter: blur(0.4em); user-select: none; } /* en em: la cifra grande pide más */
 .plata-chip {
   display: inline-flex; align-items: center; gap: 6px;
   margin: 8px 4px 0; padding: 6px 11px; border-radius: 999px;
