@@ -1,7 +1,7 @@
 // QueJuicio — pestaña Coneja: cuántas veces jugamos Coneja.
 //
 // Cada partida es un documento en households/{codigo}/conejas/{id}:
-//   { fecha: "2026-10-14", tipo: "regular" | "linguismo", estructura: true | false,
+//   { fecha: "2026-10-14", tipo: "regular" | "mixto" | "linguismo", estructura: true | false,
 //     ganador: "tania" | "jc" | "empate" | null,
 //     momento: "manana" | "tarde" | "noche" | null, lugar: "Casa" | null, nota: "…" | null,
 //     createdAt }
@@ -32,7 +32,7 @@ const NOMBRE_MES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "juli
 const MES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const LETRAS_MES = ["E", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
 const NOMBRE_DIA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-const TIPOS = { regular: "Regular", linguismo: "Lingüismo" };
+const TIPOS = { regular: "Regular", mixto: "Mixto", linguismo: "Lingüismo" };
 const MOMENTOS = { manana: "Mañana", tarde: "Tarde", noche: "Noche" };
 const GANADORES = { tania: "Tania", jc: "JC", empate: "Empate" };
 // Los filtros de «el año en 12 meses»: [valor, nombre en el chip, en la franja
@@ -42,6 +42,7 @@ const sinGanador = (c) => !(c.ganador in GANADORES);
 const FILTROS = [
   ["todas", "Todas", "", () => true, () => false],
   ["regular", "Regular", "regular", (c) => c.tipo === "regular", sinTipo],
+  ["mixto", "Mixto", "mixto", (c) => c.tipo === "mixto", sinTipo],
   ["linguismo", "Lingüismo", "lingüismo", (c) => c.tipo === "linguismo", sinTipo],
   ["con", "Con estructura", "con estructura", (c) => c.estructura === true, sinTipo],
   ["sin", "Sin estructura", "sin estructura", (c) => c.estructura === false, sinTipo],
@@ -364,20 +365,25 @@ function comparar(n, antes, nombreMes) {
   return `${Math.abs(dif)} ${dif > 0 ? "más" : "menos"} que en ${nombreMes}, que tuvo ${antes}`;
 }
 
-// Dos barras partidas: regular / lingüismo y con / sin estructura. Las que
-// no tienen ese detalle (las importadas de Loop) no entran: van en una nota.
+// Tres barras partidas: regular / mixto / lingüismo, con / sin estructura y
+// el marcador (Tania a la izquierda, JC a la derecha y los empates en medio).
+// El tramo del medio solo sale si hay. Las que no tienen el detalle de tipo
+// (las importadas de Loop) no entran: van en una nota.
 function reparto(lista) {
   const caja = el("div", "coneja-reparto");
   const cuenta = (cumple) => lista.filter(cumple).length;
-  for (const [izq, nIzq, der, nDer] of [
-    ["Regular", cuenta((c) => c.tipo === "regular"), "Lingüismo", cuenta((c) => c.tipo === "linguismo")],
-    ["Con estructura", cuenta((c) => c.estructura === true), "Sin estructura", cuenta((c) => c.estructura === false)],
+  const deTipo = (t) => cuenta((c) => c.tipo === t);
+  const gano = (g) => cuenta((c) => c.ganador === g);
+  for (const [izq, nIzq, medio, nMedio, der, nDer] of [
+    ["Regular", deTipo("regular"), "mixto", deTipo("mixto"), "lingüismo", deTipo("linguismo")],
+    ["Con estructura", cuenta((c) => c.estructura === true), null, 0, "sin estructura", cuenta((c) => c.estructura === false)],
+    ["Tania", gano("tania"), "empate", gano("empate"), "JC", gano("jc")],
   ]) {
-    if (!nIzq && !nDer) continue;
+    if (!nIzq && !nMedio && !nDer) continue;
     const fila = el("div");
     const pista = el("div", "coneja-pista");
     pista.setAttribute("aria-hidden", "true");
-    for (const [valor, clase] of [[nIzq, "coneja-pista-a"], [nDer, "coneja-pista-b"]]) {
+    for (const [valor, clase] of [[nIzq, "coneja-pista-a"], [nMedio, "coneja-pista-medio"], [nDer, "coneja-pista-b"]]) {
       if (!valor) continue;
       const tramo = el("span", clase);
       tramo.style.flexGrow = String(valor);
@@ -386,32 +392,15 @@ function reparto(lista) {
     const textos = el("div", "coneja-reparto-textos");
     const a = el("span", "", `${izq} `);
     a.append(el("strong", "", String(nIzq)));
-    const b = el("span");
-    b.append(el("strong", "", String(nDer)), ` ${der.charAt(0).toLowerCase()}${der.slice(1)}`);
-    textos.append(a, b);
-    fila.append(pista, textos);
-    caja.append(fila);
-  }
-  // El marcador: Tania a la izquierda, JC a la derecha y los empates en medio.
-  const marcador = Object.fromEntries(Object.keys(GANADORES).map((k) => [k, cuenta((c) => c.ganador === k)]));
-  if (marcador.tania || marcador.jc || marcador.empate) {
-    const fila = el("div");
-    const pista = el("div", "coneja-pista");
-    pista.setAttribute("aria-hidden", "true");
-    for (const [valor, clase] of [[marcador.tania, "coneja-pista-a"], [marcador.empate, "coneja-pista-empate"], [marcador.jc, "coneja-pista-b"]]) {
-      if (!valor) continue;
-      const tramo = el("span", clase);
-      tramo.style.flexGrow = String(valor);
-      pista.append(tramo);
+    textos.append(a);
+    if (medio) {
+      const m = el("span");
+      if (nMedio) m.append(el("strong", "", String(nMedio)), ` ${medio}${nMedio === 1 ? "" : "s"}`);
+      textos.append(m);
     }
-    const textos = el("div", "coneja-reparto-textos");
-    const a = el("span", "", "Tania ");
-    a.append(el("strong", "", String(marcador.tania)));
-    const medio = el("span");
-    if (marcador.empate) medio.append(el("strong", "", String(marcador.empate)), marcador.empate === 1 ? " empate" : " empates");
     const b = el("span");
-    b.append(el("strong", "", String(marcador.jc)), " JC");
-    textos.append(a, medio, b);
+    b.append(el("strong", "", String(nDer)), ` ${der}`);
+    textos.append(b);
     fila.append(pista, textos);
     caja.append(fila);
   }
