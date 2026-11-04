@@ -34,6 +34,7 @@ const FALLOS_MAX = 5;
 const BLOQUEO_MS = 15 * 60 * 1000;
 const BLOQUEO_MAX_MS = 24 * 60 * 60 * 1000;
 const PINES = { tania: "PIN_TANIA", jc: "PIN_JC" };
+const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 // El Resumen trae los totales (aquí no se recalcula nada) y su columna S
 // «Tipo» dice qué filas son categorías; B1 es el año y B2 «Datos hasta».
@@ -196,21 +197,26 @@ function armarDatos(resumen, movimientos) {
 
 // Los envíos del año a Colombia (euros que salieron, pesos que llegaron) y lo
 // que se fue en comisiones. Se buscan por los títulos de la pestaña, no por
-// número de fila. Si la pestaña cambia y no se encuentran, Plata esconde esa
+// número de fila. Hay un bloque de aportes por fondo (el del viaje 2026, el de
+// 2027-2028…). Si la pestaña cambia y no se encuentran, Plata esconde esa
 // parte (null) en vez de fallar entera.
 function armarColombia(filas, año) {
-  const inicio = filas.findIndex((f) => /^APORTES DESDE ALEMANIA/i.test(texto(f[0])));
-  if (inicio < 0) return null;
+  const inicios = filas.flatMap((f, i) => (/^APORTES DESDE ALEMANIA/i.test(texto(f[0])) ? [i] : []));
+  if (!inicios.length) return null;
   const envios = [];
   // Columnas: A mes del aporte, B € Colombia, C € Notfalls, E llegó, F COP.
-  for (const f of filas.slice(inicio + 2)) { // inicio + 1 son los títulos
-    const etiqueta = texto(f[0]);
-    if (!etiqueta || /^total/i.test(etiqueta)) break;
-    const fecha = fechaISO(f[4]);
-    const eur = (numero(f[1]) ?? 0) + (numero(f[2]) ?? 0);
-    const cop = numero(f[5]);
-    if (!fecha || !fecha.startsWith(String(año)) || !eur || !cop) continue;
-    envios.push({ fecha, etiqueta, eur, cop });
+  for (const inicio of inicios) {
+    for (const f of filas.slice(inicio + 2)) { // inicio + 1 son los títulos
+      // Google convierte «Oct 2026» en fecha, y aquí llegaría como número de serie.
+      const iso = typeof f[0] === "number" ? fechaISO(f[0]) : null;
+      const etiqueta = iso ? `${MESES[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}` : texto(f[0]);
+      if (!etiqueta || /^total/i.test(etiqueta)) break;
+      const fecha = fechaISO(f[4]);
+      const eur = (numero(f[1]) ?? 0) + (numero(f[2]) ?? 0);
+      const cop = numero(f[5]);
+      if (!fecha || !fecha.startsWith(String(año)) || !eur || !cop) continue;
+      envios.push({ fecha, etiqueta, eur, cop });
+    }
   }
   // Las filas mes a mes (B–M) de «MOVIMIENTOS DEL MES»: van en negativo.
   const gasto = (nombre) => {
