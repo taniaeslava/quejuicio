@@ -258,8 +258,9 @@ function icono(nombre) {
 }
 
 /* ── Los números de un mes ──
-   Mensual = fijos + variables (lo anual y los ahorros van en la pantalla del
-   año). El ritmo cuenta los fijos completos, porque se pagan al principio del
+   Mensual = fijos + variables (los ahorros van en la pantalla del año; lo
+   anual también, pero el Mes lista aparte lo que se gastó de cada uno: ver
+   filasAnuales). El ritmo cuenta los fijos completos, porque se pagan al principio del
    mes, y reparte el presupuesto de los variables en los días del mes; si no,
    la renta haría ver el mes siempre «por encima». */
 function resumenDelMes(m) {
@@ -537,7 +538,8 @@ function avisoDelMes(mes) {
    Filas como las de Tareas, con el mismo anillo: verde por debajo del 80 %,
    ámbar desde el 80 %, terracota pasado el 100 % (el arco se llena hasta el
    100 % y en el centro va el % real). Grupos: SE PASARON, VARIABLES, SIN
-   PRESUPUESTO y los fijos juntos en una sola fila que se despliega. */
+   PRESUPUESTO, ANUALES (lo gastado en el mes y cómo va el año) y los fijos
+   juntos en una sola fila que se despliega. */
 function gruposDeCategorias(mes) {
   const filas = mes.variables.map((c) => ({ c, gastado: mes.monto(c), pres: c.presMes || 0 }));
   const conTope = filas
@@ -552,8 +554,40 @@ function gruposDeCategorias(mes) {
   if (pasadas.length) grupos.push(grupoPlata("SE PASARON", pasadas.map(filaCategoria), "grupo-urgente"));
   if (dentro.length) grupos.push(grupoPlata("VARIABLES", dentro.map(filaCategoria)));
   if (sinTope.length) grupos.push(grupoPlata("SIN PRESUPUESTO", sinTope.map((f) => filaSinTope(f, mes))));
+  const anuales = filasAnuales(mes);
+  if (anuales.length) grupos.push(grupoPlata("ANUALES", anuales));
   if (mes.fijos.length) grupos.push(grupoPlata("FIJOS", filasFijos(mes), "", mes.fijos.length));
   return grupos;
+}
+
+// Los presupuestos anuales, vistos desde el mes: a la derecha lo que se gastó
+// en este mes y, en el anillo y debajo del nombre, cómo va el año hasta este
+// mes. No entran en la tarjeta grande (su presupuesto es del año, no del mes).
+// Primero las que tuvieron gasto este mes; las demás, atenuadas.
+function filasAnuales(mes) {
+  const corto = MES_CORTO[mes.m - 1];
+  return datos.categorias
+    .filter((c) => c.tipo === "anual")
+    .map((c) => ({ c, delMes: mes.monto(c), acum: suma(c.meses.slice(0, mes.m), (v) => v), pres: c.presAño || 0 }))
+    .sort((a, b) => Number(b.delMes !== 0) - Number(a.delMes !== 0) || b.delMes - a.delMes)
+    .map(({ c, delMes, acum, pres }) => {
+      const fila = filaQueAbre(c.nombre, "mes", delMes === 0 ? "atenuada" : "");
+      let anillo;
+      if (pres > 0) anillo = anilloDePct(acum / pres);
+      else {
+        anillo = el("div", "anillo unica");
+        anillo.append(el("div", "anillo-disco", "—"));
+      }
+      const cuerpo = el("div", "fila-cuerpo");
+      cuerpo.append(
+        el("div", "fila-titulo", c.nombre),
+        el("div", "fila-meta cifras", pres > 0
+          ? `Año: ${eur(acum)} de ${eur(pres)}`
+          : `Año: ${eur(acum)} · sin presupuesto`),
+      );
+      fila.append(anillo, cuerpo, ladoDerecho(`en ${corto}`, eur(delMes)));
+      return fila;
+    });
 }
 
 function grupoPlata(etiqueta, filas, claseExtra = "", cuenta = filas.length) {
